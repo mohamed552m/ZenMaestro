@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ZenMaestro" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/chalkboard</item>
+        <item name="colorOnPrimary">@color/chalk_white</item>
+        <item name="colorSecondary">@color/sage_green</item>
+        <item name="colorOnSecondary">@color/chalkboard</item>
+        <item name="colorSurface">@color/chalk_white</item>
+        <item name="colorOnSurface">@color/chalkboard</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/chalk_white</item>
+        <item name="android:navigationBarColor">@color/chalk_white</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

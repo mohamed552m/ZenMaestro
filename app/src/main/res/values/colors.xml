@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chalkboard">#16261E</color>
+    <color name="chalkboard_light">#1E332A</color>
+    <color name="chalk_line">#3A5245</color>
+    <color name="chalk_white">#F2EFE3</color>
+    <color name="sage">#8FA396</color>
+    <color name="chalk_gold">#E8C468</color>
+    <color name="coral">#E2725B</color>
+    <color name="sage_green">#8FCBA3</color>
+    <color name="sage_tint">#E4EEE4</color>
+    <color name="dusty_blue">#7FA0D9</color>
+    <color name="paper_white">#FFFEF9</color>
+    <color name="transparent">#00000000</color>
+</resources>
