@@ -16,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -26,15 +27,19 @@ import com.zenmaestro.app.databinding.ItemPlanTaskBinding
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.UUID
+import kotlinx.coroutines.launch
 
 class PlanFragment : Fragment() {
 
     private var _binding: ActivityPlanBinding? = null
     private val binding get() = _binding!!
     private lateinit var store: PlanStore
+    private lateinit var plannerService: ZenPlannerService
     private var tasks = mutableListOf<PlanTask>()
     private val weekDates by lazy { buildCurrentWeek() }
     private var selectedDayIndex = currentDayIndex()
+    private var plannerRequestRunning = false
 
     private val voiceLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -63,6 +68,7 @@ class PlanFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         store = PlanStore(requireContext())
+        plannerService = ZenPlannerService()
         tasks = store.load()
         setupWeekSelector()
         setupInputModes()
@@ -157,7 +163,58 @@ class PlanFragment : Fragment() {
             return
         }
 
-        val draft = splitIntoTasks(cleaned)
+        if (plannerRequestRunning) return
+        setPlannerRequestRunning(true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = runCatching {
+                plannerService.createDraft(
+                    rawInput = cleaned,
+                    existingCategories = tasks.map { it.type }.distinct()
+                )
+            }
+            if (_binding == null) return@launch
+            setPlannerRequestRunning(false)
+            result.onSuccess(::showAiDraftReview)
+                .onFailure {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.planner_ai_unavailable,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+        }
+    }
+
+    private fun showAiDraftReview(response: ZenPlanDraft) {
+        val selectedKey = selectedDateKey()
+        val draft = response.tasks.map { task ->
+            PlanTask(
+                id = UUID.randomUUID().toString(),
+                title = task.title,
+                durationMinutes = task.durationMinutes,
+                priority = task.priority,
+                type = task.type,
+                dateKey = selectedKey
+            )
+        }
+        val taskSummary = draft.joinToString("\n") { task ->
+            "• ${task.title} — ${formatDuration(task.durationMinutes)}"
+        }
+        val message = listOf(response.summary, taskSummary)
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+        MaterialAlertDialogBuilder(
+            requireContext(),
+            R.style.ThemeOverlay_ZenMaestro_MaterialAlertDialog
+        )
+            .setTitle(R.string.ai_draft_ready)
+            .setMessage(message)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.add_draft_to_plan) { _, _ -> addReviewedDraft(draft) }
+            .show()
+    }
+
+    private fun addReviewedDraft(draft: List<PlanTask>) {
         val selectedKey = selectedDateKey()
         val existingMinutes = tasks.filter { it.dateKey == selectedKey }.sumOf { it.durationMinutes }
         val proposedMinutes = draft.sumOf { it.durationMinutes }
@@ -168,24 +225,11 @@ class PlanFragment : Fragment() {
         }
     }
 
-    private fun splitIntoTasks(rawInput: String): List<PlanTask> {
-        val pieces = rawInput
-            .split(Regex("[,،\\n]+|\\bthen\\b|\\band\\b", RegexOption.IGNORE_CASE))
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .take(8)
-            .ifEmpty { listOf(rawInput) }
-
-        return pieces.mapIndexed { index, title ->
-            PlanTask(
-                id = "${System.currentTimeMillis()}_$index",
-                title = title.replaceFirstChar { it.titlecase(Locale.getDefault()) },
-                durationMinutes = if (index == 0) 45 else 30,
-                priority = (index + 1).coerceAtMost(5),
-                type = getString(R.string.learning),
-                dateKey = selectedDateKey()
-            )
-        }
+    private fun setPlannerRequestRunning(running: Boolean) {
+        plannerRequestRunning = running
+        binding.buildPlanButton.isEnabled = !running
+        binding.buildVoicePlanButton.isEnabled = !running
+        binding.recordVoiceButton.isEnabled = !running
     }
 
     private fun showCapacityDialog(draft: List<PlanTask>, totalMinutes: Int) {

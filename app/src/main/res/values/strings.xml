@@ -239,6 +239,9 @@
     <string name="coach_ai_consent_message">The message you send will be processed by Google Gemini through the secure ZenMaestro backend. Your saved tasks, progress, name, and email will not be included.</string>
     <string name="continue_to_gemini">Continue</string>
     <string name="coach_thinking">Thinking&#8230;</string>
+    <string name="ai_draft_ready">Review Zen’s draft</string>
+    <string name="add_draft_to_plan">Add to plan</string>
+    <string name="planner_ai_unavailable">Zen plan generation is not available yet. Your text was not added or changed.</string>
     <string name="coach_ai_unavailable">AI guidance is unavailable right now. Here is a private summary from your plan on this device:</string>
     <string name="prompt_realistic">Is my plan realistic?</string>
     <string name="prompt_next">What should I do next?</string>
