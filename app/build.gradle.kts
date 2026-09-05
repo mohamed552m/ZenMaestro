@@ -1,4 +1,18 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+val zenLocalProperties = Properties().apply {
+    val propertiesFile = rootProject.file("local.properties")
+    if (propertiesFile.exists()) propertiesFile.inputStream().use(::load)
+}
+val zenApiBaseUrl = (
+    zenLocalProperties.getProperty("ZENMAESTRO_API_BASE_URL")
+        ?: System.getenv("ZENMAESTRO_API_BASE_URL")
+        ?: ""
+).trim().trimEnd('/')
+val escapedZenApiBaseUrl = zenApiBaseUrl
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 plugins {
     id("com.android.application")
@@ -16,10 +30,12 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "API_BASE_URL", "\"$escapedZenApiBaseUrl\"")
     }
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     compileOptions {

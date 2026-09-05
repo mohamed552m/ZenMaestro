@@ -21,11 +21,16 @@ data class PlanTask(
 class PlanStore(context: Context) {
 
     private val appContext = context.applicationContext
+    private val userUid = FirebaseAuth.getInstance().currentUser?.uid
 
     private val preferences = appContext.getSharedPreferences(
-        "zen_plan_${FirebaseAuth.getInstance().currentUser?.uid ?: "guest"}",
+        "zen_plan_${userUid ?: "guest"}",
         Context.MODE_PRIVATE
     )
+
+    init {
+        userUid?.let { PlanSyncCoordinator.enqueue(appContext, it) }
+    }
 
     fun load(): MutableList<PlanTask> = runCatching {
         val stored = preferences.getString(KEY_TASKS, "[]") ?: "[]"
@@ -48,6 +53,7 @@ class PlanStore(context: Context) {
     }.getOrDefault(mutableListOf())
 
     fun save(tasks: List<PlanTask>) {
+        val previous = load()
         val array = JSONArray()
         tasks.forEach { task ->
             array.put(
@@ -67,11 +73,20 @@ class PlanStore(context: Context) {
         }
         preferences.edit().putString(KEY_TASKS, array.toString()).apply()
         NotificationCoordinator.sync(appContext, tasks)
+        userUid?.let { uid ->
+            PlanSyncQueue.enqueueChanges(appContext, uid, previous, tasks)
+            PlanSyncCoordinator.enqueue(appContext, uid)
+        }
     }
 
     fun clear() {
+        val previous = load()
         preferences.edit().remove(KEY_TASKS).apply()
         NotificationCoordinator.cancelAll(appContext)
+        userUid?.let { uid ->
+            PlanSyncQueue.enqueueChanges(appContext, uid, previous, emptyList())
+            PlanSyncCoordinator.enqueue(appContext, uid)
+        }
     }
 
     companion object {
