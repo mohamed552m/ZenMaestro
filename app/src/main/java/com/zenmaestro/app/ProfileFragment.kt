@@ -2,6 +2,7 @@ package com.zenmaestro.app
 
 import android.Manifest
 import android.app.TimePickerDialog
+import android.content.DialogInterface
 import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
@@ -10,9 +11,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.zenmaestro.app.databinding.DialogEditProfileBinding
 import com.zenmaestro.app.databinding.FragmentProfileBinding
 import java.util.Calendar
 
@@ -60,7 +67,8 @@ class ProfileFragment : Fragment() {
         renderLearningStart()
         configureReminders()
         binding.learningStartRow.setOnClickListener { showLearningStartPicker() }
-        binding.resetPasswordRow.setOnClickListener { confirmPasswordReset() }
+        binding.editProfileButton.setOnClickListener { showEditProfile() }
+        binding.resetPasswordRow.setOnClickListener { handleSignInManagement() }
         binding.privacyRow.setOnClickListener { showDataPrivacy() }
         binding.signOutButton.setOnClickListener { confirmSignOut() }
         val versionName = runCatching {
@@ -84,7 +92,45 @@ class ProfileFragment : Fragment() {
             ?: getString(R.string.learner)
         binding.profileName.text = name
         binding.profileEmail.text = user?.email ?: getString(R.string.signed_in_account)
-        binding.avatarText.text = name.firstOrNull()?.uppercase() ?: "L"
+        binding.avatarText.text = initials(name)
+
+        val verified = user?.isEmailVerified == true
+        binding.profileVerificationText.setText(
+            if (verified) R.string.verified_account else R.string.email_not_verified
+        )
+        if (verified) {
+            binding.profileVerificationIcon.setImageResource(R.drawable.ic_check_circle)
+            ImageViewCompat.setImageTintList(binding.profileVerificationIcon, null)
+            binding.profileVerificationText.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.sage_green)
+            )
+        } else {
+            binding.profileVerificationIcon.setImageResource(R.drawable.ic_shield)
+            ImageViewCompat.setImageTintList(
+                binding.profileVerificationIcon,
+                ContextCompat.getColorStateList(requireContext(), R.color.sage)
+            )
+            binding.profileVerificationText.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.sage)
+            )
+        }
+
+        val providerIds = user?.providerData?.map { it.providerId }.orEmpty()
+        binding.passwordSignInMessage.text = when {
+            EmailAuthProvider.PROVIDER_ID in providerIds -> getString(R.string.change_password_message)
+            GoogleAuthProvider.PROVIDER_ID in providerIds -> getString(R.string.signed_in_with_google)
+            else -> getString(R.string.signed_in_account)
+        }
+    }
+
+    private fun initials(name: String): String {
+        return name.trim()
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .take(2)
+            .mapNotNull { it.firstOrNull()?.uppercase() }
+            .joinToString("")
+            .ifBlank { "L" }
     }
 
     private fun renderStats() {
@@ -151,6 +197,85 @@ class ProfileFragment : Fragment() {
             .setNegativeButton(R.string.close, null)
             .setPositiveButton(R.string.clear_learning_data) { _, _ -> confirmClearData() }
             .show()
+    }
+
+    private fun showEditProfile() {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            Toast.makeText(requireContext(), R.string.profile_update_failed, Toast.LENGTH_SHORT)
+                .show()
+            return
+        }
+
+        val dialogBinding = DialogEditProfileBinding.inflate(layoutInflater)
+        val currentName = user.displayName?.takeIf { it.isNotBlank() }
+            ?: user.email?.substringBefore('@')?.replaceFirstChar { it.uppercase() }
+            ?: getString(R.string.learner)
+        dialogBinding.displayNameInput.setText(currentName)
+        dialogBinding.displayNameInput.setSelection(currentName.length)
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.edit_profile)
+            .setView(dialogBinding.root)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+
+        dialog.setOnShowListener {
+            val saveButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            saveButton.setOnClickListener {
+                val displayName = dialogBinding.displayNameInput.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+                if (displayName.isBlank()) {
+                    dialogBinding.displayNameInputLayout.error =
+                        getString(R.string.display_name_required)
+                    return@setOnClickListener
+                }
+
+                dialogBinding.displayNameInputLayout.error = null
+                saveButton.isEnabled = false
+                val request = UserProfileChangeRequest.Builder()
+                    .setDisplayName(displayName)
+                    .build()
+                user.updateProfile(request).addOnCompleteListener { task ->
+                    if (!isAdded) return@addOnCompleteListener
+                    saveButton.isEnabled = true
+                    if (task.isSuccessful) {
+                        renderAccount()
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.profile_updated,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        dialog.dismiss()
+                    } else {
+                        dialogBinding.displayNameInputLayout.error =
+                            getString(R.string.profile_update_failed)
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun handleSignInManagement() {
+        val providerIds = FirebaseAuth.getInstance().currentUser
+            ?.providerData
+            ?.map { it.providerId }
+            .orEmpty()
+        when {
+            EmailAuthProvider.PROVIDER_ID in providerIds -> confirmPasswordReset()
+            GoogleAuthProvider.PROVIDER_ID in providerIds -> {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.sign_in_provider_title)
+                    .setMessage(R.string.google_sign_in_message)
+                    .setPositiveButton(R.string.close, null)
+                    .show()
+            }
+            else -> confirmPasswordReset()
+        }
     }
 
     private fun confirmPasswordReset() {

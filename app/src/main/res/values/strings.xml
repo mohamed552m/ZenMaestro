@@ -271,8 +271,19 @@
     <string name="keep_plan_realistic_message">You have %1$d tasks left this week. Protect the most important one first.</string>
 
     <string name="profile_subtitle">Your account, progress, and preferences</string>
+    <string name="profile_subtitle_v2">Your identity, learning progress, and preferences</string>
     <string name="learner">Learner</string>
     <string name="signed_in_account">Your signed-in ZenMaestro account</string>
+    <string name="verified_account">Verified account</string>
+    <string name="email_not_verified">Email not verified</string>
+    <string name="edit_profile">Edit profile</string>
+    <string name="edit_profile_message">Choose the name shown across your ZenMaestro account.</string>
+    <string name="display_name">Display name</string>
+    <string name="display_name_required">Enter your display name</string>
+    <string name="profile_updated">Profile updated</string>
+    <string name="profile_update_failed">We could not update your profile. Try again.</string>
+    <string name="learning_snapshot">Learning snapshot</string>
+    <string name="learning_preferences">Learning preferences</string>
     <string name="personal_learning_account">PERSONAL LEARNING ACCOUNT</string>
     <string name="your_learning_setup">Your learning setup</string>
     <string name="learning_day_starts">Learning day starts</string>
@@ -280,6 +291,12 @@
     <string name="learning_reminders">Learning reminders</string>
     <string name="reminders_message">Notify me when a scheduled task begins.</string>
     <string name="account_privacy">Account &amp; privacy</string>
+    <string name="account_security">Account &amp; security</string>
+    <string name="password_sign_in">Password &amp; sign-in</string>
+    <string name="signed_in_with_google">Signed in securely with Google.</string>
+    <string name="signed_in_with_provider">Your sign-in is managed by %1$s.</string>
+    <string name="sign_in_provider_title">Your sign-in method</string>
+    <string name="google_sign_in_message">This account uses Google sign-in, so there is no ZenMaestro password to reset.</string>
     <string name="change_password">Change password</string>
     <string name="change_password_message">Send a secure reset link to your email.</string>
     <string name="send_password_reset_question">Send a password reset link?</string>
