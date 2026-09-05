@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -84,6 +85,7 @@ class PlanFragment : Fragment() {
 
     private fun setupWeekSelector() {
         dayButtons().forEachIndexed { index, button ->
+            button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             button.isCheckable = true
             button.setTextColor(ContextCompat.getColorStateList(requireContext(), R.color.plan_day_text))
             button.text = SimpleDateFormat("EEE\nd", Locale.ENGLISH)
@@ -100,6 +102,13 @@ class PlanFragment : Fragment() {
     }
 
     private fun setupInputModes() {
+        listOf(
+            binding.modeZenButton,
+            binding.modeVoiceButton,
+            binding.modeManualButton,
+        ).forEach { button ->
+            button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        }
         binding.planModeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             when (checkedId) {
@@ -299,6 +308,9 @@ class PlanFragment : Fragment() {
                 window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                 findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
                     sheet.setBackgroundColor(Color.TRANSPARENT)
+                    sheet.layoutParams = sheet.layoutParams.apply {
+                        height = (resources.displayMetrics.heightPixels * 0.86f).toInt()
+                    }
                     BottomSheetBehavior.from(sheet).apply {
                         state = BottomSheetBehavior.STATE_EXPANDED
                         skipCollapsed = true

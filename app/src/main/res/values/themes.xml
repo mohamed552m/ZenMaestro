@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.ZenMaestro" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/chalkboard</item>
         <item name="colorOnPrimary">@color/chalk_white</item>
@@ -13,7 +13,7 @@
         <item name="android:navigationBarColor">@color/chalk_white</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
     </style>
 
     <style name="ThemeOverlay.ZenMaestro.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">

@@ -35,6 +35,7 @@ class ZenBottomNavView @JvmOverloads constructor(
         )
 
         items.forEach { item ->
+            findViewById<TextView>(item.labelId).textSize = 11f
             findViewById<View>(item.containerId).setOnClickListener {
                 listener?.invoke(item.containerId)
             }

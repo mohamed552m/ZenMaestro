@@ -201,7 +201,7 @@
                             android:layout_marginTop="4dp"
                             android:text="@string/completed"
                             android:textColor="@color/sage"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <View
@@ -232,7 +232,7 @@
                             android:layout_marginTop="4dp"
                             android:text="@string/focused"
                             android:textColor="@color/sage"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <View
@@ -263,7 +263,7 @@
                             android:layout_marginTop="4dp"
                             android:text="@string/day_streak"
                             android:textColor="@color/sage"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -333,7 +333,7 @@
                                 android:maxLines="1"
                                 android:text="@string/learning_day_starts_message"
                                 android:textColor="@color/sage"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
 
                         <TextView
@@ -390,7 +390,7 @@
                                 android:maxLines="1"
                                 android:text="@string/reminders_message"
                                 android:textColor="@color/sage"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
 
                         <com.google.android.material.materialswitch.MaterialSwitch
@@ -468,7 +468,7 @@
                                 android:maxLines="1"
                                 android:text="@string/change_password_message"
                                 android:textColor="@color/sage"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
 
                         <ImageView
@@ -526,7 +526,7 @@
                                 android:maxLines="1"
                                 android:text="@string/data_privacy_message"
                                 android:textColor="@color/sage"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
 
                         <ImageView
@@ -561,7 +561,7 @@
                 android:layout_marginTop="12dp"
                 android:gravity="center"
                 android:textColor="@color/sage"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </FrameLayout>

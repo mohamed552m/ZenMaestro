@@ -52,7 +52,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
                         android:textColor="@color/sage"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <ImageButton
@@ -81,13 +81,13 @@
                     android:orientation="horizontal"
                     android:padding="7dp">
 
-                    <com.google.android.material.button.MaterialButton android:id="@+id/dayMonday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/dayTuesday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/dayWednesday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/dayThursday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/dayFriday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/daySaturday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/daySunday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="9sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/dayMonday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/dayTuesday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/dayWednesday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/dayThursday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/dayFriday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/daySaturday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/daySunday" android:layout_width="0dp" android:layout_height="58dp" android:layout_weight="1" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:padding="0dp" android:textAllCaps="false" android:textSize="11sp" app:backgroundTint="@color/plan_day_background" app:cornerRadius="13dp" app:rippleColor="@color/sage_tint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -111,7 +111,7 @@
                     android:text="@string/with_zen"
                     android:textAllCaps="false"
                     android:textColor="@color/plan_mode_text"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     app:backgroundTint="@color/plan_mode_background"
                     app:icon="@drawable/ic_nav_coach"
                     app:iconPadding="5dp"
@@ -128,7 +128,7 @@
                     android:text="@string/voice"
                     android:textAllCaps="false"
                     android:textColor="@color/plan_mode_text"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     app:backgroundTint="@color/plan_mode_background"
                     app:icon="@drawable/ic_mic"
                     app:iconPadding="5dp"
@@ -145,7 +145,7 @@
                     android:text="@string/manual"
                     android:textAllCaps="false"
                     android:textColor="@color/plan_mode_text"
-                    android:textSize="10sp"
+                    android:textSize="12sp"
                     app:backgroundTint="@color/plan_mode_background"
                     app:icon="@drawable/ic_add"
                     app:iconPadding="5dp"
@@ -173,7 +173,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/plan_with_zen"
                         android:textColor="@color/sage_green"
-                        android:textSize="10sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -194,7 +194,7 @@
                         android:layout_marginTop="7dp"
                         android:text="@string/describe_learning_day_message"
                         android:textColor="@color/sage"
-                        android:textSize="10sp" />
+                        android:textSize="12sp" />
 
                     <LinearLayout
                         android:id="@+id/zenInputPanel"
@@ -302,7 +302,7 @@
                                     android:layout_marginTop="3dp"
                                     android:text="@string/voice_review_message"
                                     android:textColor="@color/sage"
-                                    android:textSize="9sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
@@ -406,7 +406,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/waiting_input"
                     android:textColor="@color/sage"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
@@ -417,7 +417,7 @@
                 android:padding="12dp"
                 android:text="@string/plan_draft_note"
                 android:textColor="@color/chalk_line"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:visibility="gone" />
 
             <com.google.android.material.card.MaterialCardView
@@ -474,7 +474,7 @@
                             android:layout_marginTop="5dp"
                             android:text="@string/no_tasks_options"
                             android:textColor="@color/sage"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -521,7 +521,7 @@
                     android:text="@string/break_label"
                     android:textAllCaps="false"
                     android:textColor="@color/chalkboard"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     app:backgroundTint="@color/paper_white"
                     app:cornerRadius="14dp"
                     app:icon="@drawable/ic_coffee"

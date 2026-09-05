@@ -40,7 +40,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
                 android:textColor="@color/chalkboard"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -49,7 +49,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:textColor="@color/sage"
-                android:textSize="9sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <TextView
@@ -58,7 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:textColor="@color/chalk_line"
-            android:textSize="9sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton

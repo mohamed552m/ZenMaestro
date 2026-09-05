@@ -47,7 +47,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/home"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
 
                 <View
                     android:id="@+id/homeIndicator"
@@ -82,7 +82,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/plan"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
 
                 <View
                     android:id="@+id/planIndicator"
@@ -111,7 +111,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/coach"
                     android:textColor="@color/chalkboard"
-                    android:textSize="10sp"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <View
@@ -148,7 +148,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/progress"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
 
                 <View
                     android:id="@+id/progressIndicator"
@@ -184,7 +184,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/profile"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
 
                 <View
                     android:id="@+id/profileIndicator"

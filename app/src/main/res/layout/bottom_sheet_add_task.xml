@@ -62,7 +62,7 @@
             android:layout_marginTop="4dp"
             android:text="@string/manual_sheet_subtitle"
             android:textColor="@color/sage"
-            android:textSize="12sp" />
+            android:textSize="13sp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/taskTitleLayout"
@@ -97,7 +97,7 @@
             android:layout_marginTop="16dp"
             android:text="@string/duration"
             android:textColor="@color/chalk_line"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButtonToggleGroup
@@ -176,7 +176,7 @@
             android:layout_marginTop="16dp"
             android:text="@string/priority"
             android:textColor="@color/chalk_line"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButtonToggleGroup

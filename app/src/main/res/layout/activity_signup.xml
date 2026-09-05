@@ -48,7 +48,7 @@
             android:letterSpacing="0.18"
             android:text="@string/brand_motto"
             android:textColor="@color/sage"
-            android:textSize="8sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
     </LinearLayout>

@@ -200,6 +200,83 @@
         </androidx.core.widget.NestedScrollView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/attachmentPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="18dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/sage_tint"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/sage_green"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:contentDescription="@null"
+                    android:padding="3dp"
+                    android:src="@drawable/ic_attach_file"
+                    app:tint="@color/chalkboard" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/attachmentName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="middle"
+                        android:fontFamily="sans-serif-medium"
+                        android:maxLines="1"
+                        android:textColor="@color/chalkboard"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/attachmentSize"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="@color/chalk_line"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/removeAttachmentButton"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:contentDescription="@string/remove_attachment"
+                    android:minWidth="0dp"
+                    android:text=""
+                    app:backgroundTint="@android:color/transparent"
+                    app:cornerRadius="21dp"
+                    app:icon="@drawable/ic_close"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/chalkboard" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/chatInputCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="18dp"
@@ -218,6 +295,21 @@
                 android:orientation="horizontal"
                 android:padding="7dp">
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/attachButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="@string/attach_file"
+                    android:minWidth="0dp"
+                    android:text=""
+                    app:backgroundTint="@color/sage_tint"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_attach_file"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="21dp"
+                    app:iconTint="@color/chalkboard" />
+
                 <EditText
                     android:id="@+id/chatInput"
                     android:layout_width="0dp"
@@ -228,7 +320,7 @@
                     android:imeOptions="actionSend"
                     android:inputType="textCapSentences|textMultiLine"
                     android:maxLines="3"
-                    android:paddingHorizontal="12dp"
+                    android:paddingHorizontal="10dp"
                     android:textColor="@color/chalkboard"
                     android:textColorHint="@color/sage"
                     android:textDirection="firstStrong"

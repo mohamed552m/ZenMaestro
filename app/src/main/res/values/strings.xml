@@ -236,7 +236,7 @@
     <string name="coach_plan_reply">You have %1$d pending tasks and about %2$s left today. Start with %3$s.</string>
     <string name="coach_gemini_pending">Gemini connection will use the secure backend. The conversation UI and local plan context are ready.</string>
     <string name="coach_ai_consent_title">Continue with Gemini?</string>
-    <string name="coach_ai_consent_message">The message you send will be processed by Google Gemini through the secure ZenMaestro backend. Your saved tasks, progress, name, and email will not be included.</string>
+    <string name="coach_ai_consent_message">Your message and only the file you selected will be processed by Google Gemini through the secure ZenMaestro backend. Your saved tasks, progress, name, and email will not be included.</string>
     <string name="continue_to_gemini">Continue</string>
     <string name="coach_thinking">Thinking&#8230;</string>
     <string name="ai_draft_ready">Review Zen’s draft</string>
@@ -247,6 +247,15 @@
     <string name="prompt_next">What should I do next?</string>
     <string name="prompt_focus">Help me protect my focus</string>
     <string name="new_conversation">New conversation</string>
+    <string name="attach_file">Attach image or file</string>
+    <string name="remove_attachment">Remove attachment</string>
+    <string name="attachment_ready">Ready to send &#8226; %1$s</string>
+    <string name="attachment_too_large">Choose a file that is 10 MB or smaller.</string>
+    <string name="attachment_not_supported">Choose an image, PDF, or text file.</string>
+    <string name="attachment_read_failed">ZenMaestro could not open this file.</string>
+    <string name="attachment_default_prompt">Help me understand this attachment.</string>
+    <string name="attachment_message_format">%1$s\n\nAttached: %2$s</string>
+    <string name="coach_attachment_failed">The attachment was not sent. Check the connection and try again.</string>
 
     <string name="progress_subtitle">Built from completed tasks and real history</string>
     <string name="completion">Completion</string>

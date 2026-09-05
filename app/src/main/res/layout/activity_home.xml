@@ -67,7 +67,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:textColor="@color/sage"
-                        android:textSize="10sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <ImageButton
@@ -144,7 +144,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/today_focus"
                             android:textColor="@color/sage_green"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -237,7 +237,7 @@
                             android:layout_marginTop="3dp"
                             android:text="@string/tasks"
                             android:textColor="@color/sage"
-                            android:textSize="9sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <View
@@ -267,7 +267,7 @@
                             android:layout_marginTop="3dp"
                             android:text="@string/planned"
                             android:textColor="@color/sage"
-                            android:textSize="9sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
 
                     <View
@@ -297,7 +297,7 @@
                             android:layout_marginTop="3dp"
                             android:text="@string/completed"
                             android:textColor="@color/sage"
-                            android:textSize="9sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -328,7 +328,7 @@
                     android:text="@string/open_plan"
                     android:textAllCaps="false"
                     android:textColor="@color/chalk_line"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
@@ -385,7 +385,7 @@
                             android:layout_marginTop="5dp"
                             android:text="@string/your_day_empty_message"
                             android:textColor="@color/sage"
-                            android:textSize="10sp" />
+                        android:textSize="11sp" />
                     </LinearLayout>
 
                     <ImageButton
@@ -430,7 +430,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/start_one_day"
                     android:textColor="@color/sage"
-                    android:textSize="10sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
@@ -457,31 +457,31 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotMonday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="MON" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="MON" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotTuesday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="TUE" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="TUE" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotWednesday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="WED" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="WED" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotThursday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="THU" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="THU" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotFriday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="FRI" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="FRI" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotSaturday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="SAT" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="SAT" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
                         <com.google.android.material.card.MaterialCardView android:id="@+id/dotSunday" android:layout_width="23dp" android:layout_height="23dp" app:cardBackgroundColor="@color/chalk_white" app:cardCornerRadius="12dp" app:cardElevation="0dp" app:strokeColor="@color/sage_tint" app:strokeWidth="1dp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="SUN" android:textColor="@color/sage" android:textSize="8sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:text="SUN" android:textColor="@color/sage" android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
