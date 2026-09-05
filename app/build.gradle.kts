@@ -33,6 +33,15 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"$escapedZenApiBaseUrl\"")
     }
 
+    buildTypes {
+        debug {
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
+        release {
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
+        }
+    }
+
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -64,7 +73,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-ai")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
 }

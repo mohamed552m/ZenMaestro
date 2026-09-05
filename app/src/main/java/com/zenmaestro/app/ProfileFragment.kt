@@ -49,6 +49,7 @@ class ProfileFragment : Fragment() {
                 Toast.LENGTH_LONG
             ).show()
         }
+        syncAccountPreferences()
     }
 
     override fun onCreateView(
@@ -66,6 +67,7 @@ class ProfileFragment : Fragment() {
         renderAccount()
         renderLearningStart()
         configureReminders()
+        syncAccountPreferences()
         binding.learningStartRow.setOnClickListener { showLearningStartPicker() }
         binding.editProfileButton.setOnClickListener { showEditProfile() }
         binding.resetPasswordRow.setOnClickListener { handleSignInManagement() }
@@ -154,6 +156,7 @@ class ProfileFragment : Fragment() {
             }
             NotificationCoordinator.setRemindersEnabled(requireContext(), checked)
             if (checked) NotificationCoordinator.sync(requireContext(), store.load())
+            syncAccountPreferences()
         }
     }
 
@@ -181,6 +184,7 @@ class ProfileFragment : Fragment() {
                     .putInt(KEY_START_MINUTE, selectedMinute)
                     .apply()
                 binding.learningStartValue.text = formatTime(selectedHour, selectedMinute)
+                syncAccountPreferences()
             },
             hour,
             minute,
@@ -312,6 +316,7 @@ class ProfileFragment : Fragment() {
             .setPositiveButton(R.string.clear) { _, _ ->
                 store.clear()
                 reflectionStore.clear()
+                AccountSyncCoordinator.deleteLearningData(requireContext())
                 renderStats()
                 Toast.makeText(requireContext(), R.string.learning_data_cleared, Toast.LENGTH_SHORT)
                     .show()
@@ -336,6 +341,15 @@ class ProfileFragment : Fragment() {
             set(Calendar.MINUTE, minute)
         }
         return DateFormat.getTimeFormat(requireContext()).format(calendar.time)
+    }
+
+    private fun syncAccountPreferences() {
+        AccountSyncCoordinator.syncPreferences(
+            context = requireContext(),
+            learningStartHour = preferences.getInt(KEY_START_HOUR, DEFAULT_START_HOUR),
+            learningStartMinute = preferences.getInt(KEY_START_MINUTE, 0),
+            remindersEnabled = NotificationCoordinator.remindersEnabled(requireContext())
+        )
     }
 
     private fun formatMinutes(minutes: Int): String = when {

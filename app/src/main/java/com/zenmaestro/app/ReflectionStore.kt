@@ -14,13 +14,21 @@ data class LearningReflection(
 
 class ReflectionStore(context: Context) {
 
-    private val preferences = context.getSharedPreferences(
-        "zen_reflections_${FirebaseAuth.getInstance().currentUser?.uid ?: "guest"}",
+    private val appContext = context.applicationContext
+    private val userUid = FirebaseAuth.getInstance().currentUser?.uid
+    private val preferences = appContext.getSharedPreferences(
+        "zen_reflections_${userUid ?: "guest"}",
         Context.MODE_PRIVATE
     )
 
+    init {
+        userUid?.let { ReflectionSyncCoordinator.enqueue(appContext, it) }
+    }
+
     fun add(reflection: LearningReflection) {
-        val entries = load().toMutableList().apply { add(reflection) }
+        val entries = load().filterNot { it.taskId == reflection.taskId }.toMutableList().apply {
+            add(reflection)
+        }
         val array = JSONArray()
         entries.forEach { entry ->
             array.put(
@@ -33,6 +41,10 @@ class ReflectionStore(context: Context) {
             )
         }
         preferences.edit().putString(KEY_REFLECTIONS, array.toString()).apply()
+        userUid?.let { uid ->
+            ReflectionSyncQueue.enqueue(appContext, uid, reflection)
+            ReflectionSyncCoordinator.enqueue(appContext, uid)
+        }
     }
 
     fun load(): List<LearningReflection> {
@@ -53,6 +65,7 @@ class ReflectionStore(context: Context) {
 
     fun clear() {
         preferences.edit().remove(KEY_REFLECTIONS).apply()
+        userUid?.let { ReflectionSyncQueue.clear(appContext, it) }
     }
 
     companion object {

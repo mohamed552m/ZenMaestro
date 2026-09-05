@@ -3,7 +3,6 @@ package com.zenmaestro.app
 import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import org.json.JSONObject
 import java.io.IOException
@@ -23,14 +22,12 @@ class PlanSyncWorker(
         if (user == null || user.uid != userUid) return Result.success()
 
         return try {
-            var token = Tasks.await(user.getIdToken(false)).token.orEmpty()
-            if (token.isBlank()) return Result.retry()
+            var tokens = BackendAuthTokenProvider.get(user, forceRefresh = false)
             for (operation in PlanSyncQueue.load(applicationContext, userUid)) {
-                var responseCode = sendOperation(baseUrl, token, operation)
+                var responseCode = sendOperation(baseUrl, tokens, operation)
                 if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                    token = Tasks.await(user.getIdToken(true)).token.orEmpty()
-                    if (token.isBlank()) return Result.retry()
-                    responseCode = sendOperation(baseUrl, token, operation)
+                    tokens = BackendAuthTokenProvider.get(user, forceRefresh = true)
+                    responseCode = sendOperation(baseUrl, tokens, operation)
                 }
                 val accepted = responseCode in 200..299 ||
                     operation.action == PlanSyncQueue.ACTION_DELETE &&
@@ -51,7 +48,7 @@ class PlanSyncWorker(
 
     private fun sendOperation(
         baseUrl: String,
-        token: String,
+        tokens: BackendAuthTokens,
         operation: PendingTaskSync
     ): Int {
         val path = if (operation.action == PlanSyncQueue.ACTION_DELETE) {
@@ -68,7 +65,8 @@ class PlanSyncWorker(
             }
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
-            connection.setRequestProperty("Authorization", "Bearer $token")
+            connection.setRequestProperty("Authorization", "Bearer ${tokens.idToken}")
+            connection.setRequestProperty("X-Firebase-AppCheck", tokens.appCheckToken)
             connection.setRequestProperty("Accept", "application/json")
             if (operation.action == PlanSyncQueue.ACTION_UPSERT) {
                 connection.doOutput = true
