@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ZenMaestro</string>
-    <string name="brand_motto">PLAN  •  FOCUS  •  GROW</string>
+    <string name="brand_motto">PLAN  &#8226;  FOCUS  &#8226;  GROW</string>
     <string name="welcome_back">Welcome back</string>
     <string name="login_subtitle">Continue your learning journey.</string>
     <string name="email_address">Email address</string>
@@ -13,6 +13,9 @@
     <string name="sign_up">Sign up</string>
     <string name="or">OR</string>
     <string name="continue_google">Continue with Google</string>
+    <string name="signing_in">Signing in&#8230;</string>
+    <string name="google_sign_in_setup_needed">Google sign-in code is ready, but Firebase still needs the Google provider and OAuth client enabled.</string>
+    <string name="google_sign_in_failed">Google sign-in could not be completed. Please try again.</string>
     <string name="new_to_zenmaestro">New to ZenMaestro?</string>
     <string name="create_account">Create your account</string>
     <string name="signup_subtitle">Your personal learning plan starts here.</string>
@@ -59,6 +62,40 @@
     <string name="profile">Profile</string>
     <string name="task_completed">Task completed</string>
     <string name="task_pending">Task pending</string>
+    <string name="learning_plan_title">Your Learning Plan</string>
+    <string name="current_week">Current week</string>
+    <string name="add_task">Add task</string>
+    <string name="edit_task">Edit task</string>
+    <string name="weekly_plan_label">WEEKLY PLAN</string>
+    <string name="make_week_yours">Make this week yours</string>
+    <string name="your_tasks_your_pace">Your tasks, your pace.</string>
+    <string name="this_week">THIS WEEK</string>
+    <string name="selected_day_plan">%1$s\'S PLAN</string>
+    <string name="nothing_planned">Nothing planned</string>
+    <string name="planned_time">%1$s planned</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="no_tasks_for_day">No tasks for this day</string>
+    <string name="no_tasks_message">Add your own learning tasks. Zen will help you stay organized without taking control.</string>
+    <string name="add_first_task">Add your first task</string>
+    <string name="you_are_in_control">YOU ARE IN CONTROL</string>
+    <string name="zen_control_message">Zen can suggest changes later, but nothing moves without your approval.</string>
+    <string name="task_title">Task title</string>
+    <string name="duration_minutes_label">Duration in minutes</string>
+    <string name="task_type">Learning type</string>
+    <string name="task_day">Day</string>
+    <string name="task_meta_format">%1$s  &#8226;  %2$s</string>
+    <string name="task_title_error">Enter a task title</string>
+    <string name="task_duration_error">Choose a duration from 5 to 480 minutes</string>
+    <string name="task_day_error">Choose a day</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="remove">Remove</string>
+    <string name="remove_task_title">Remove task?</string>
+    <string name="remove_task_message">%1$s will be removed from your plan.</string>
+    <string name="mark_task_complete">Mark task complete</string>
     <string name="auth_full_name">Enter your full name</string>
     <string name="auth_valid_email">Enter a valid email address</string>
     <string name="auth_password_length">Password must be at least 6 characters</string>
@@ -73,4 +110,232 @@
     <string name="auth_login_failed">We could not sign you in. Please try again</string>
     <string name="auth_network_error">Check your internet connection and try again</string>
     <string name="auth_too_many_requests">Too many attempts. Please wait and try again</string>
+    <string name="reset_password_title">Reset your password</string>
+    <string name="reset_password_subtitle">Enter the email linked to your account and we will send a secure reset link.</string>
+    <string name="send_reset_link">Send reset link</string>
+    <string name="sending_reset_link">Sending link…</string>
+    <string name="send_again">Send again</string>
+    <string name="back_to_login">Back to log in</string>
+    <string name="reset_email_sent_title">Check your inbox</string>
+    <string name="reset_email_sent_message">If an account exists for %1$s, a password reset email is on its way.</string>
+    <string name="reset_email_failed_title">Could not send the link</string>
+    <string name="reset_email_failed_message">Please check the email and try again.</string>
+    <string name="notification_channel_name">Learning reminders</string>
+    <string name="notification_channel_description">Reminders for scheduled ZenMaestro learning tasks</string>
+    <string name="notification_ready_title">Ready for your next focus?</string>
+    <string name="notification_task_message">%1$s • %2$d min</string>
+    <string name="notification_permission_denied">Notifications are off. You can enable them later from Android settings.</string>
+    <string name="next_reminder_message">Your next reminder is for “%1$s” on %2$s.</string>
+    <string name="no_scheduled_reminders">No reminders are scheduled yet. Schedule your day in Plan and Zen will remind you.</string>
+    <string name="send_test_reminder">Test reminder</string>
+    <string name="close">Close</string>
+
+    <!-- Home: every value is populated from the signed-in user's own plan. -->
+    <string name="home_empty_focus_title">What will you learn today?</string>
+    <string name="home_empty_focus_message">Your plan begins with your own words. Zen only organises what you choose.</string>
+    <string name="build_today_plan">Build today\'s plan</string>
+    <string name="tasks">Tasks</string>
+    <string name="planned">Planned</string>
+    <string name="completed">Completed</string>
+    <string name="your_day">Your day</string>
+    <string name="open_plan">Open plan</string>
+    <string name="your_day_is_open">Your day is open</string>
+    <string name="your_day_empty_message">Tasks appear here only after you add your own learning goals.</string>
+    <string name="consistency">Consistency</string>
+    <string name="start_one_day">Start with one completed day</string>
+    <string name="learning_day_in_progress">A learning day in progress</string>
+    <string name="streak_from_completed_days">Your streak grows from completed learning days.</string>
+    <string name="learning_consistency_active">Your completed days are building consistency.</string>
+    <string name="reminders_are_off">Learning reminders are off. Turn them on to receive alerts for scheduled tasks.</string>
+    <string name="turn_on_reminders">Turn on</string>
+    <string name="greeting_date_format">%1$s &#8226; %2$s</string>
+    <string name="good_morning">Good morning</string>
+    <string name="good_afternoon">Good afternoon</string>
+    <string name="good_evening">Good evening</string>
+    <string name="home_scheduled_focus">%1$s &#8226; %2$d min &#8226; Ready when you are.</string>
+    <string name="home_next_focus">%1$d min &#8226; Your next learning task.</string>
+    <string name="start_focus">Start focus</string>
+    <string name="home_plan_complete">Your plan is complete.</string>
+    <string name="home_plan_complete_message">Take a moment to reflect, then let Zen use today to improve tomorrow.</string>
+    <string name="view_progress">View progress</string>
+    <string name="break_meta">Recovery &#8226; %1$d min</string>
+    <string name="home_task_meta">Priority %1$d &#8226; %2$d min</string>
+    <string name="task_time_range">%1$s&#8211;%2$s</string>
+
+    <!-- Plan: assisted entry organises only information supplied by the user. -->
+    <string name="my_plan">My Plan</string>
+    <string name="plan_options">Plan options</string>
+    <string name="with_zen">With Zen</string>
+    <string name="voice">Voice</string>
+    <string name="manual">Manual</string>
+    <string name="plan_with_zen">Plan with Zen</string>
+    <string name="describe_learning_day">Describe your learning day</string>
+    <string name="describe_learning_day_message">Tell Zen what you want to learn and any time limits. You review every task before it is scheduled.</string>
+    <string name="plan_input_hint">Example: Review chapter 3 for 40 minutes, then practise two exercises</string>
+    <string name="build_my_plan">Build my plan</string>
+    <string name="tap_describe_day">Tap to describe your day</string>
+    <string name="voice_review_message">Your words stay editable before Zen builds anything.</string>
+    <string name="review_transcript">Review transcript</string>
+    <string name="build_from_transcript">Build from transcript</string>
+    <string name="priority">Priority</string>
+    <string name="add_to_plan">Add to plan</string>
+    <string name="add_learning_task">Add a learning task</string>
+    <string name="manual_sheet_subtitle">Your words, your time, your priority.</string>
+    <string name="duration">Duration</string>
+    <string name="fifteen_minutes">15 min</string>
+    <string name="one_hour">1 hour</string>
+    <string name="high_priority">High</string>
+    <string name="medium_priority">Medium</string>
+    <string name="low_priority">Low</string>
+    <string name="todays_plan_title">Today\'s plan</string>
+    <string name="waiting_input">Waiting for your input</string>
+    <string name="plan_draft_note">Nothing is scheduled until you approve it.</string>
+    <string name="no_tasks_yet">No tasks yet</string>
+    <string name="no_tasks_options">Describe your day, use your voice, or add one task manually.</string>
+    <string name="schedule_my_day">Schedule my day</string>
+    <string name="break_label">Break</string>
+    <string name="task_options">Task options</string>
+    <string name="say_learning_day">Say what you want to learn today</string>
+    <string name="add_clear_task">Add a clear task</string>
+    <string name="manual_task_message">Choose the title, duration, and priority. Zen will not invent any content.</string>
+    <string name="open_manual_task_form">Open the task form</string>
+    <string name="describe_day_error">Describe at least one learning task</string>
+    <string name="learning">Learning</string>
+    <string name="capacity_title">That may be a heavy day</string>
+    <string name="capacity_message">Your draft contains %1$s. Keep the most important tasks today, or keep everything and review it yourself.</string>
+    <string name="keep_all">Keep all</string>
+    <string name="keep_top_tasks">Keep top 3</string>
+    <string name="remaining_tasks_tomorrow">The remaining tasks were kept for tomorrow.</string>
+    <string name="manual_task_added_note">Task added. Review it before scheduling.</string>
+    <string name="voice_unavailable">Voice input is not available on this device</string>
+    <string name="recovery">Recovery</string>
+    <string name="break_added_note">A 15-minute break was added.</string>
+    <string name="schedule_ready_note">Your day is scheduled. You can still edit every task.</string>
+    <string name="named_day_plan">%1$s\'s plan</string>
+    <string name="task_count_scheduled">%1$d tasks &#8226; Scheduled</string>
+    <string name="task_count_review">%1$d tasks &#8226; Ready to review</string>
+    <string name="plan_task_meta">Priority %1$d &#8226; %2$d min</string>
+    <string name="focus_screen_next">The Focus screen comes next. Home and Plan are the two screens implemented now.</string>
+
+    <!-- Main fragments -->
+    <string name="coach_title">Zen Coach</string>
+    <string name="coach_subtitle">AI guidance while you stay in control</string>
+    <string name="coach_ready">Ready to guide</string>
+    <string name="coach_welcome_title">What do you want help with?</string>
+    <string name="coach_welcome_message">Ask about your plan, focus, or consistency. Zen only uses data you choose to share.</string>
+    <string name="coach_options">Coach options</string>
+    <string name="coach_connection_issue">Zen couldn\'t connect. Your message is safe, and this reply uses only your plan on this device.</string>
+    <string name="coach_intro_title">Your data, your coach.</string>
+    <string name="coach_intro_message">Ask for learning guidance. Your saved plan stays on this device unless you choose to share it later.</string>
+    <string name="quick_questions">Quick questions</string>
+    <string name="coach_empty_title">Start a conversation</string>
+    <string name="coach_empty_message">Zen can guide your next step and never changes your plan without approval.</string>
+    <string name="ask_zen_hint">Ask Zen about your day</string>
+    <string name="send_message">Send message</string>
+    <string name="coach_no_plan_reply">I don\'t have a plan to analyse yet. Add your learning goals in Plan first.</string>
+    <string name="coach_plan_reply">You have %1$d pending tasks and about %2$s left today. Start with %3$s.</string>
+    <string name="coach_gemini_pending">Gemini connection will use the secure backend. The conversation UI and local plan context are ready.</string>
+    <string name="coach_ai_consent_title">Continue with Gemini?</string>
+    <string name="coach_ai_consent_message">The message you send will be processed by Google Gemini through Firebase AI Logic. Your saved tasks, progress, name, and email will not be included.</string>
+    <string name="continue_to_gemini">Continue</string>
+    <string name="coach_thinking">Thinking&#8230;</string>
+    <string name="coach_ai_unavailable">AI guidance is unavailable right now. Here is a private summary from your plan on this device:</string>
+    <string name="prompt_realistic">Is my plan realistic?</string>
+    <string name="prompt_next">What should I do next?</string>
+    <string name="prompt_focus">Help me protect my focus</string>
+    <string name="new_conversation">New conversation</string>
+
+    <string name="progress_subtitle">Built from completed tasks and real history</string>
+    <string name="completion">Completion</string>
+    <string name="focused">Focused</string>
+    <string name="day_streak">Day streak</string>
+    <string name="progress_starts_here">Your progress starts here.</string>
+    <string name="progress_empty_message">Complete learning tasks to build useful patterns and realistic coaching.</string>
+    <string name="this_week_title">This week</string>
+    <string name="patterns_insights">Patterns &amp; insights</string>
+    <string name="not_enough_history">Not enough history yet</string>
+    <string name="not_enough_history_message">Insights appear after more completed learning sessions.</string>
+    <string name="week_progress_format">%1$d of %2$d tasks completed</string>
+    <string name="progress_active_title">%1$d%% complete this week</string>
+    <string name="progress_active_message">You completed %1$d of %2$d learning tasks. Keep the plan realistic and consistent.</string>
+    <string name="current_week_scope">Only tasks scheduled from Monday to Sunday.</string>
+    <string name="no_tasks_this_week_title">A fresh week is ready.</string>
+    <string name="no_tasks_this_week_message">Your previous progress is safe. Add this week’s learning tasks when you are ready.</string>
+    <string name="first_step_title">Your first win is ready.</string>
+    <string name="first_step_message">Complete one planned task and Zen will start building useful patterns from your real activity.</string>
+    <string name="consistency_taking_shape">Consistency is taking shape.</string>
+    <string name="consistency_taking_shape_message">You have learned for %1$d days in a row. Keep the next session small and achievable.</string>
+    <string name="week_complete_title">This week is complete.</string>
+    <string name="week_complete_message">Every learning task you planned for this week is complete. Review what worked before planning more.</string>
+    <string name="keep_plan_realistic_title">Keep the plan realistic.</string>
+    <string name="keep_plan_realistic_message">You have %1$d tasks left this week. Protect the most important one first.</string>
+
+    <string name="profile_subtitle">Your account, progress, and preferences</string>
+    <string name="learner">Learner</string>
+    <string name="signed_in_account">Your signed-in ZenMaestro account</string>
+    <string name="personal_learning_account">PERSONAL LEARNING ACCOUNT</string>
+    <string name="your_learning_setup">Your learning setup</string>
+    <string name="learning_day_starts">Learning day starts</string>
+    <string name="learning_day_starts_message">Sets the default time for flexible plans.</string>
+    <string name="learning_reminders">Learning reminders</string>
+    <string name="reminders_message">Notify me when a scheduled task begins.</string>
+    <string name="account_privacy">Account &amp; privacy</string>
+    <string name="change_password">Change password</string>
+    <string name="change_password_message">Send a secure reset link to your email.</string>
+    <string name="send_password_reset_question">Send a password reset link?</string>
+    <string name="send_password_reset_profile_message">ZenMaestro will send a secure reset link to %1$s.</string>
+    <string name="password_reset_sent">Password reset email sent</string>
+    <string name="data_privacy">Data &amp; privacy</string>
+    <string name="data_privacy_message">Review or clear learning data on this device.</string>
+    <string name="your_learning_data">Your learning data</string>
+    <string name="local_data_summary">%1$d learning tasks and %2$d reflections are saved on this device for your account.</string>
+    <string name="clear_learning_data">Clear learning data</string>
+    <string name="clear_learning_data_title">Clear local learning data?</string>
+    <string name="clear_learning_data_message">This removes your tasks, completion history, reflections, and scheduled reminders from this device. It cannot be undone.</string>
+    <string name="clear">Clear</string>
+    <string name="learning_data_cleared">Learning data cleared</string>
+    <string name="sign_out_question">Sign out of ZenMaestro?</string>
+    <string name="sign_out_message">Your local learning data stays available when you sign back in with this account.</string>
+    <string name="app_version">ZenMaestro %1$s</string>
+    <string name="sign_out">Sign out</string>
+
+    <string name="focus_session">Focus session</string>
+    <string name="ready_to_begin">Ready to begin</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="finish">Finish</string>
+    <string name="could_not_finish">I couldn\'t finish this task</string>
+    <string name="task_not_found">This task is no longer available</string>
+    <string name="focus_complete_title">Session complete</string>
+    <string name="focus_complete_message">Mark this task complete and return to Home?</string>
+    <string name="mark_complete">Mark complete</string>
+    <string name="keep_pending">Keep pending</string>
+    <string name="quick_reflection">Quick reflection</string>
+    <string name="reflection_question">How did this learning session feel?</string>
+    <string name="easier_than_expected">Easier than expected</string>
+    <string name="about_right">About right</string>
+    <string name="harder_than_expected">Harder than expected</string>
+    <string name="reflection_note_hint">What helped or slowed you down? (optional)</string>
+    <string name="save_complete">Save &amp; complete</string>
+    <string name="focus_in_progress">Focus in progress</string>
+    <string name="focus_paused">Session paused</string>
+    <string name="focus_time_complete">Planned time complete</string>
+
+    <string-array name="plan_priorities">
+        <item>High &#8226; 1</item>
+        <item>Medium &#8226; 3</item>
+        <item>Low &#8226; 5</item>
+    </string-array>
+
+    <plurals name="weekly_tasks_count">
+        <item quantity="one">%1$d task this week</item>
+        <item quantity="other">%1$d tasks this week</item>
+    </plurals>
+
+    <string-array name="plan_task_types">
+        <item>Study</item>
+        <item>Practice</item>
+        <item>Review</item>
+        <item>Reflect</item>
+    </string-array>
 </resources>

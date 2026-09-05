@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="76dp"
+        android:layout_gravity="bottom"
+        app:cardBackgroundColor="@color/paper_white"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <LinearLayout
+                android:id="@id/nav_home"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="8dp">
+
+                <ImageView
+                    android:id="@+id/homeIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="@string/home"
+                    android:src="@drawable/ic_nav_home" />
+
+                <TextView
+                    android:id="@+id/homeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/home"
+                    android:textSize="10sp" />
+
+                <View
+                    android:id="@+id/homeIndicator"
+                    android:layout_width="18dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@color/sage_green" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@id/nav_plan"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="8dp">
+
+                <ImageView
+                    android:id="@+id/planIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="@string/plan"
+                    android:src="@drawable/ic_nav_plan" />
+
+                <TextView
+                    android:id="@+id/planLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/plan"
+                    android:textSize="10sp" />
+
+                <View
+                    android:id="@+id/planIndicator"
+                    android:layout_width="18dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@color/sage_green"
+                    android:visibility="invisible" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@id/nav_coach"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="bottom|center_horizontal"
+                android:orientation="vertical"
+                android:paddingBottom="5dp">
+
+                <TextView
+                    android:id="@+id/coachLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/coach"
+                    android:textColor="@color/chalkboard"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:id="@+id/coachIndicator"
+                    android:layout_width="18dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@color/sage_green"
+                    android:visibility="invisible" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@id/nav_progress"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="8dp">
+
+                <ImageView
+                    android:id="@+id/progressIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="@string/progress"
+                    android:src="@drawable/ic_nav_progress" />
+
+                <TextView
+                    android:id="@+id/progressLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/progress"
+                    android:textSize="10sp" />
+
+                <View
+                    android:id="@+id/progressIndicator"
+                    android:layout_width="18dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@color/sage_green"
+                    android:visibility="invisible" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@id/nav_profile"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="8dp">
+
+                <ImageView
+                    android:id="@+id/profileIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="@string/profile"
+                    android:src="@drawable/ic_nav_profile" />
+
+                <TextView
+                    android:id="@+id/profileLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/profile"
+                    android:textSize="10sp" />
+
+                <View
+                    android:id="@+id/profileIndicator"
+                    android:layout_width="18dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="5dp"
+                    android:background="@color/sage_green"
+                    android:visibility="invisible" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/coachFloatingButton"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="top|center_horizontal"
+        android:clickable="true"
+        android:contentDescription="@string/coach"
+        android:focusable="true"
+        app:cardBackgroundColor="@color/sage_tint"
+        app:cardCornerRadius="36dp"
+        android:translationZ="8dp"
+        app:cardElevation="20dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            app:cardBackgroundColor="@color/chalkboard"
+            app:cardCornerRadius="32dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/paper_white"
+            app:strokeWidth="4dp">
+
+            <com.zenmaestro.app.ZenMarkView
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/coach" />
+        </com.google.android.material.card.MaterialCardView>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

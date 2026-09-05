@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/appRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/chalk_white"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.zenmaestro.app.ZenBottomNavView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_navigation_height"
+        android:layout_gravity="bottom"
+        android:visibility="gone" />
+
+</FrameLayout>

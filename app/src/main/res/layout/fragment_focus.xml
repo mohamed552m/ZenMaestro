@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/chalkboard">
+
+    <ImageButton
+        android:id="@+id/backButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Back"
+        android:padding="12dp"
+        android:src="@drawable/ic_arrow_back" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="28dp">
+
+        <com.zenmaestro.app.ZenMarkView
+            android:layout_width="92dp"
+            android:layout_height="92dp"
+            android:contentDescription="@string/zen_mark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:letterSpacing="0.12"
+            android:text="@string/focus_session"
+            android:textAllCaps="true"
+            android:textColor="@color/sage_green"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/taskTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="@string/task_not_found"
+            android:textColor="@color/chalk_white"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/timerValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:fontFamily="sans-serif-light"
+            android:text="30:00"
+            android:textColor="@color/chalk_white"
+            android:textSize="60sp" />
+
+        <TextView
+            android:id="@+id/timerCaption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/ready_to_begin"
+            android:textColor="@color/sage"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="34dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/pauseButton"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_weight="1"
+                android:text="@string/pause"
+                android:textAllCaps="false"
+                android:textColor="@color/chalk_white"
+                android:textStyle="bold"
+                app:backgroundTint="@color/chalkboard_light"
+                app:cornerRadius="17dp"
+                app:strokeColor="@color/chalk_line"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/finishButton"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:text="@string/finish"
+                android:textAllCaps="false"
+                android:textColor="@color/chalkboard"
+                android:textStyle="bold"
+                app:backgroundTint="@color/sage_green"
+                app:cornerRadius="17dp" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/couldNotFinishButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/could_not_finish"
+            android:textAllCaps="false"
+            android:textColor="@color/sage" />
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="bottom_navigation_height">96dp</dimen>
+    <dimen name="coach_item_lift">18dp</dimen>
+    <dimen name="consistency_dot_stroke">1dp</dimen>
+    <dimen name="consistency_dot_active_stroke">3dp</dimen>
+</resources>

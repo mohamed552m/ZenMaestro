@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/chalk_white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="@dimen/bottom_navigation_height"
+        android:orientation="vertical">
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/coachScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="18dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="18dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/chalkboard"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="3dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="17dp">
+
+                        <com.zenmaestro.app.ZenMarkView
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:contentDescription="@string/zen_mark" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="13dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="@string/coach_title"
+                                android:textColor="@color/chalk_white"
+                                android:textSize="23sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="3dp"
+                                android:text="@string/coach_ready"
+                                android:textColor="@color/sage_green"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/coachMenuButton"
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:contentDescription="@string/coach_options"
+                            android:minWidth="0dp"
+                            android:text=""
+                            app:backgroundTint="@color/chalkboard_light"
+                            app:cornerRadius="21dp"
+                            app:icon="@drawable/ic_more_horizontal"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconSize="20dp"
+                            app:iconTint="@color/chalk_white" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:id="@+id/welcomeContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="4dp"
+                    android:paddingTop="22dp"
+                    android:paddingEnd="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="@string/coach_welcome_title"
+                        android:textColor="@color/chalkboard"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:lineSpacingExtra="2dp"
+                        android:text="@string/coach_welcome_message"
+                        android:textColor="@color/sage"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/realisticPromptButton"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="15dp"
+                        android:gravity="center_vertical|start"
+                        android:text="@string/prompt_realistic"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chalkboard"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/paper_white"
+                        app:cornerRadius="15dp"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="textEnd"
+                        app:iconTint="@color/chalk_line"
+                        app:strokeColor="@color/sage_tint"
+                        app:strokeWidth="1dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/nextPromptButton"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical|start"
+                        android:text="@string/prompt_next"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chalkboard"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/paper_white"
+                        app:cornerRadius="15dp"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="textEnd"
+                        app:iconTint="@color/chalk_line"
+                        app:strokeColor="@color/sage_tint"
+                        app:strokeWidth="1dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/focusPromptButton"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical|start"
+                        android:text="@string/prompt_focus"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chalkboard"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/paper_white"
+                        app:cornerRadius="15dp"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="textEnd"
+                        app:iconTint="@color/chalk_line"
+                        app:strokeColor="@color/sage_tint"
+                        app:strokeWidth="1dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/coachOfflineBanner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@color/sage_tint"
+                    android:drawableStart="@drawable/ic_wifi_off"
+                    android:drawablePadding="9dp"
+                    android:gravity="center_vertical"
+                    android:padding="13dp"
+                    android:text="@string/coach_connection_issue"
+                    android:textColor="@color/chalk_line"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/chatList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="18dp"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/paper_white"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="3dp"
+            app:strokeColor="@color/sage_tint"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="7dp">
+
+                <EditText
+                    android:id="@+id/chatInput"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="@string/ask_zen_hint"
+                    android:imeOptions="actionSend"
+                    android:inputType="textCapSentences|textMultiLine"
+                    android:maxLines="3"
+                    android:paddingHorizontal="12dp"
+                    android:textColor="@color/chalkboard"
+                    android:textColorHint="@color/sage"
+                    android:textDirection="firstStrong"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/sendButton"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:contentDescription="@string/send_message"
+                    android:minWidth="0dp"
+                    android:text=""
+                    app:backgroundTint="@color/chalkboard"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_send"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="22dp"
+                    app:iconTint="@color/chalk_white" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</FrameLayout>

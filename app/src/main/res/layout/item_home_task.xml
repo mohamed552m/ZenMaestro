@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardBackgroundColor="@color/paper_white"
+    app:cardCornerRadius="17dp"
+    app:cardElevation="2dp"
+    app:strokeColor="@color/sage_tint"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp">
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/taskCheck"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:buttonTint="@color/sage_green"
+            android:contentDescription="@string/mark_task_complete" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="3dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/taskTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:textColor="@color/chalkboard"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/taskMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/sage"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/taskTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textColor="@color/chalk_line"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/taskStartButton"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="7dp"
+            android:minWidth="0dp"
+            android:padding="10dp"
+            android:text=""
+            app:backgroundTint="@color/chalkboard"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_play"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="16dp"
+            app:iconTint="@color/chalk_white" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

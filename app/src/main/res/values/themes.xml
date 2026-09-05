@@ -15,4 +15,13 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:forceDarkAllowed">false</item>
     </style>
+
+    <style name="ThemeOverlay.ZenMaestro.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/chalkboard</item>
+        <item name="colorSurface">@color/chalk_white</item>
+        <item name="colorSurfaceContainerHigh">@color/chalk_white</item>
+        <item name="colorOnSurface">@color/chalkboard</item>
+        <item name="colorOnSurfaceVariant">@color/chalk_line</item>
+        <item name="colorOutline">@color/sage</item>
+    </style>
 </resources>

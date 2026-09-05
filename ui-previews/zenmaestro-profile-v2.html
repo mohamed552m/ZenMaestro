@@ -1,0 +1,412 @@
+<div id="zen-profile-v2">
+  <style>
+    #zen-profile-v2 {
+      position: relative;
+      display: grid;
+      place-items: start center;
+      padding: 20px 8px;
+      color: #10291f;
+      font-family: Inter, Roboto, Arial, sans-serif;
+      background: transparent;
+    }
+    #zen-profile-v2 * { box-sizing: border-box; }
+    #zen-profile-v2 .zm-phone {
+      width: min(390px, 100%);
+      overflow: hidden;
+      border: 1px solid #cbd8cf;
+      border-radius: 32px;
+      background: #f7f2e6;
+      box-shadow: 0 18px 48px rgba(16, 41, 31, .16);
+    }
+    #zen-profile-v2 .zm-status {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 22px 8px;
+      color: #50675d;
+      font-size: 12px;
+    }
+    #zen-profile-v2 .zm-content { padding: 10px 18px 26px; }
+    #zen-profile-v2 .zm-title-row,
+    #zen-profile-v2 .zm-identity-top,
+    #zen-profile-v2 .zm-setting,
+    #zen-profile-v2 .zm-nav {
+      display: flex;
+      align-items: center;
+    }
+    #zen-profile-v2 .zm-title-row { justify-content: space-between; margin-bottom: 16px; }
+    #zen-profile-v2 h1,
+    #zen-profile-v2 h2,
+    #zen-profile-v2 p { margin: 0; }
+    #zen-profile-v2 h1 { font-size: 28px; line-height: 1.1; font-weight: 500; }
+    #zen-profile-v2 h2 { margin: 22px 0 10px; font-size: 16px; font-weight: 500; }
+    #zen-profile-v2 .zm-icon-button {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid #cbd8cf;
+      border-radius: 14px;
+      color: #10291f;
+      background: #fffdf7;
+      cursor: pointer;
+    }
+    #zen-profile-v2 .zm-identity {
+      padding: 18px;
+      border-radius: 24px;
+      color: #fffdf7;
+      background: #10291f;
+      box-shadow: 0 8px 20px rgba(16, 41, 31, .14);
+    }
+    #zen-profile-v2 .zm-avatar {
+      display: grid;
+      flex: 0 0 auto;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      border: 2px solid #e1f0e5;
+      border-radius: 20px;
+      color: #10291f;
+      background: #90d1a8;
+      font-size: 21px;
+      font-weight: 500;
+    }
+    #zen-profile-v2 .zm-identity-copy { min-width: 0; margin-left: 14px; }
+    #zen-profile-v2 .zm-name { overflow: hidden; font-size: 19px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+    #zen-profile-v2 .zm-email { overflow: hidden; margin-top: 5px; color: #b9cbbf; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    #zen-profile-v2 .zm-verified { display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; color: #90d1a8; font-size: 11px; }
+    #zen-profile-v2 .zm-edit {
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px 14px;
+      border: 1px solid #6d8979;
+      border-radius: 14px;
+      color: #fffdf7;
+      background: transparent;
+      font: inherit;
+      cursor: pointer;
+    }
+    #zen-profile-v2 .zm-snapshot {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 15px 8px;
+      border: 1px solid #d7e2da;
+      border-radius: 20px;
+      background: #fffdf7;
+    }
+    #zen-profile-v2 .zm-metric { padding: 2px 6px; text-align: center; }
+    #zen-profile-v2 .zm-metric + .zm-metric { border-left: 1px solid #d7e2da; }
+    #zen-profile-v2 .zm-metric strong { display: block; font-size: 19px; font-weight: 500; }
+    #zen-profile-v2 .zm-metric span { display: block; margin-top: 4px; color: #6c8276; font-size: 10px; }
+    #zen-profile-v2 .zm-group {
+      overflow: hidden;
+      border: 1px solid #d7e2da;
+      border-radius: 20px;
+      background: #fffdf7;
+    }
+    #zen-profile-v2 .zm-setting {
+      width: 100%;
+      min-height: 68px;
+      padding: 12px 14px;
+      border: 0;
+      color: #10291f;
+      background: transparent;
+      text-align: left;
+      font: inherit;
+    }
+    #zen-profile-v2 button.zm-setting { cursor: pointer; }
+    #zen-profile-v2 .zm-setting + .zm-setting { border-top: 1px solid #e3ebe5; }
+    #zen-profile-v2 .zm-setting-icon {
+      display: grid;
+      flex: 0 0 auto;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      color: #10291f;
+      background: #e6f1e8;
+    }
+    #zen-profile-v2 .zm-setting-copy { min-width: 0; margin-left: 12px; flex: 1; }
+    #zen-profile-v2 .zm-setting-label { display: block; font-size: 13px; font-weight: 500; }
+    #zen-profile-v2 .zm-setting-note { display: block; margin-top: 4px; color: #71877b; font-size: 10px; }
+    #zen-profile-v2 .zm-setting-value { margin-left: 8px; color: #10291f; font-size: 12px; font-weight: 500; white-space: nowrap; }
+    #zen-profile-v2 .zm-switch { position: relative; width: 46px; height: 26px; margin-left: 8px; }
+    #zen-profile-v2 .zm-switch input { position: absolute; opacity: 0; pointer-events: none; }
+    #zen-profile-v2 .zm-switch span { position: absolute; inset: 0; border-radius: 99px; background: #a9b9af; cursor: pointer; transition: .2s; }
+    #zen-profile-v2 .zm-switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fffdf7; transition: .2s; }
+    #zen-profile-v2 .zm-switch input:checked + span { background: #10291f; }
+    #zen-profile-v2 .zm-switch input:checked + span::after { transform: translateX(20px); }
+    #zen-profile-v2 .zm-signout {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px;
+      border: 1px solid #ba655e;
+      border-radius: 16px;
+      color: #a84f49;
+      background: transparent;
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    #zen-profile-v2 .zm-version { margin-top: 12px; color: #809187; font-size: 10px; text-align: center; }
+    #zen-profile-v2 .zm-nav {
+      position: relative;
+      justify-content: space-around;
+      height: 76px;
+      border-top: 1px solid #d5ded7;
+      background: #fffdf7;
+    }
+    #zen-profile-v2 .zm-nav button {
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      min-width: 52px;
+      padding: 8px 4px;
+      border: 0;
+      color: #89a095;
+      background: transparent;
+      font: inherit;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    #zen-profile-v2 .zm-nav button.is-active { color: #10291f; }
+    #zen-profile-v2 .zm-coach {
+      transform: translateY(-15px);
+    }
+    #zen-profile-v2 .zm-coach-mark {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border: 5px solid #fffdf7;
+      border-radius: 50%;
+      color: #fffdf7;
+      background: #10291f;
+      box-shadow: 0 3px 10px rgba(16, 41, 31, .22);
+      font-size: 23px;
+    }
+    #zen-profile-v2 .zm-overlay {
+      position: absolute;
+      z-index: 20;
+      inset: 0;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(16, 41, 31, .38);
+    }
+    #zen-profile-v2 .zm-overlay.is-open { display: flex; }
+    #zen-profile-v2 .zm-sheet {
+      width: min(390px, 100%);
+      padding: 20px;
+      border-radius: 24px 24px 18px 18px;
+      color: #10291f;
+      background: #fffdf7;
+      box-shadow: 0 -10px 34px rgba(16, 41, 31, .18);
+    }
+    #zen-profile-v2 .zm-sheet h2 { margin: 0 0 16px; font-size: 19px; }
+    #zen-profile-v2 .zm-field-label { display: block; margin: 12px 0 6px; font-size: 12px; font-weight: 500; }
+    #zen-profile-v2 .zm-field {
+      width: 100%;
+      padding: 12px 13px;
+      border: 1px solid #cbd8cf;
+      border-radius: 12px;
+      color: #10291f;
+      background: #f7f2e6;
+      font: inherit;
+    }
+    #zen-profile-v2 .zm-sheet-actions { display: flex; gap: 10px; margin-top: 18px; }
+    #zen-profile-v2 .zm-sheet-actions button { flex: 1; padding: 12px; border-radius: 13px; font: inherit; cursor: pointer; }
+    #zen-profile-v2 .zm-cancel { border: 1px solid #cbd8cf; color: #10291f; background: transparent; }
+    #zen-profile-v2 .zm-save { border: 1px solid #10291f; color: #fffdf7; background: #10291f; }
+    #zen-profile-v2 .zm-toast {
+      position: absolute;
+      z-index: 30;
+      left: 50%;
+      bottom: 24px;
+      display: none;
+      transform: translateX(-50%);
+      padding: 10px 14px;
+      border-radius: 12px;
+      color: #fffdf7;
+      background: #10291f;
+      font-size: 12px;
+      box-shadow: 0 8px 20px rgba(16, 41, 31, .24);
+    }
+    #zen-profile-v2 .zm-toast.is-visible { display: block; }
+    @media (max-width: 350px) {
+      #zen-profile-v2 { padding-inline: 0; }
+      #zen-profile-v2 .zm-phone { border-radius: 22px; }
+      #zen-profile-v2 .zm-content { padding-inline: 14px; }
+      #zen-profile-v2 .zm-identity { padding: 15px; }
+    }
+  </style>
+
+  <section class="zm-phone" aria-label="ZenMaestro professional profile preview">
+    <div class="zm-status"><span>9:41</span><span>● Wi-Fi&nbsp;&nbsp;▮</span></div>
+    <main class="zm-content">
+      <div class="zm-title-row">
+        <h1>Profile</h1>
+        <button class="zm-icon-button" type="button" data-action="settings" aria-label="Profile settings"><i data-lucide="settings" aria-hidden="true"></i></button>
+      </div>
+
+      <section class="zm-identity" aria-label="Signed-in account">
+        <div class="zm-identity-top">
+          <div class="zm-avatar" id="zm-avatar">ME</div>
+          <div class="zm-identity-copy">
+            <p class="zm-name" id="zm-name">Mohammed Elshahat</p>
+            <p class="zm-email">Signed in with your ZenMaestro account</p>
+            <span class="zm-verified"><i data-lucide="badge-check" aria-hidden="true"></i> Verified account</span>
+          </div>
+        </div>
+        <button class="zm-edit" type="button" data-action="edit-profile">Edit profile</button>
+      </section>
+
+      <h2>Learning snapshot</h2>
+      <section class="zm-snapshot" aria-label="Learning metrics">
+        <div class="zm-metric"><strong>0</strong><span>Completed</span></div>
+        <div class="zm-metric"><strong>0m</strong><span>Focused</span></div>
+        <div class="zm-metric"><strong>0</strong><span>Day streak</span></div>
+      </section>
+
+      <h2>Learning preferences</h2>
+      <section class="zm-group">
+        <button class="zm-setting" type="button" data-action="time">
+          <span class="zm-setting-icon"><i data-lucide="calendar-clock" aria-hidden="true"></i></span>
+          <span class="zm-setting-copy"><span class="zm-setting-label">Learning day starts</span><span class="zm-setting-note">Default time for flexible plans</span></span>
+          <span class="zm-setting-value" id="zm-time-value">9:00 AM</span>
+        </button>
+        <button class="zm-setting" type="button" data-action="goal">
+          <span class="zm-setting-icon"><i data-lucide="target" aria-hidden="true"></i></span>
+          <span class="zm-setting-copy"><span class="zm-setting-label">Weekly learning goal</span><span class="zm-setting-note">Set a realistic focus target</span></span>
+          <span class="zm-setting-value">Not set</span>
+        </button>
+        <div class="zm-setting">
+          <span class="zm-setting-icon"><i data-lucide="bell" aria-hidden="true"></i></span>
+          <span class="zm-setting-copy"><span class="zm-setting-label">Learning reminders</span><span class="zm-setting-note">Notify me when a task begins</span></span>
+          <label class="zm-switch" aria-label="Learning reminders"><input id="zm-reminders" type="checkbox" checked><span></span></label>
+        </div>
+      </section>
+
+      <h2>Account &amp; security</h2>
+      <section class="zm-group">
+        <button class="zm-setting" type="button" data-action="password">
+          <span class="zm-setting-icon"><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+          <span class="zm-setting-copy"><span class="zm-setting-label">Password &amp; sign-in</span><span class="zm-setting-note">Reset your password securely</span></span>
+          <i data-lucide="chevron-right" aria-hidden="true"></i>
+        </button>
+        <button class="zm-setting" type="button" data-action="privacy">
+          <span class="zm-setting-icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
+          <span class="zm-setting-copy"><span class="zm-setting-label">Data &amp; privacy</span><span class="zm-setting-note">Review or clear learning data</span></span>
+          <i data-lucide="chevron-right" aria-hidden="true"></i>
+        </button>
+      </section>
+
+      <button class="zm-signout" type="button" data-action="signout">Sign out</button>
+      <p class="zm-version">ZenMaestro · Version 1.0</p>
+    </main>
+
+    <nav class="zm-nav" aria-label="Main navigation">
+      <button type="button" data-nav="home"><i data-lucide="home" aria-hidden="true"></i><span>Home</span></button>
+      <button type="button" data-nav="plan"><i data-lucide="calendar-days" aria-hidden="true"></i><span>Plan</span></button>
+      <button class="zm-coach" type="button" data-nav="coach"><span class="zm-coach-mark">Z</span><span>Coach</span></button>
+      <button type="button" data-nav="progress"><i data-lucide="chart-no-axes-column-increasing" aria-hidden="true"></i><span>Progress</span></button>
+      <button class="is-active" type="button" data-nav="profile"><i data-lucide="user-round" aria-hidden="true"></i><span>Profile</span></button>
+    </nav>
+  </section>
+
+  <div class="zm-overlay" id="zm-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="zm-edit-title">
+    <form class="zm-sheet" id="zm-edit-form">
+      <h2 id="zm-edit-title">Edit profile</h2>
+      <label class="zm-field-label" for="zm-name-input">Display name</label>
+      <input class="zm-field" id="zm-name-input" type="text" value="Mohammed Elshahat" maxlength="40">
+      <div class="zm-sheet-actions">
+        <button class="zm-cancel" type="button" data-action="cancel-edit">Cancel</button>
+        <button class="zm-save" type="submit">Save changes</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="zm-overlay" id="zm-time-overlay" role="dialog" aria-modal="true" aria-labelledby="zm-time-title">
+    <form class="zm-sheet" id="zm-time-form">
+      <h2 id="zm-time-title">Learning day starts</h2>
+      <label class="zm-field-label" for="zm-time-input">Choose time</label>
+      <input class="zm-field" id="zm-time-input" type="time" value="09:00">
+      <div class="zm-sheet-actions">
+        <button class="zm-cancel" type="button" data-action="cancel-time">Cancel</button>
+        <button class="zm-save" type="submit">Save time</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="zm-toast" id="zm-toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('zen-profile-v2');
+      const editOverlay = root.querySelector('#zm-edit-overlay');
+      const timeOverlay = root.querySelector('#zm-time-overlay');
+      const toast = root.querySelector('#zm-toast');
+      let toastTimer;
+
+      function showToast(message) {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.add('is-visible');
+        toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 1800);
+      }
+
+      function initials(name) {
+        const parts = name.trim().split(/\s+/).filter(Boolean);
+        return parts.slice(0, 2).map(part => part[0].toUpperCase()).join('') || 'L';
+      }
+
+      root.querySelectorAll('[data-action]').forEach(control => {
+        control.addEventListener('click', () => {
+          const action = control.dataset.action;
+          if (action === 'edit-profile') editOverlay.classList.add('is-open');
+          else if (action === 'cancel-edit') editOverlay.classList.remove('is-open');
+          else if (action === 'time') timeOverlay.classList.add('is-open');
+          else if (action === 'cancel-time') timeOverlay.classList.remove('is-open');
+          else if (action === 'settings') showToast('Profile settings');
+          else if (action === 'goal') showToast('Weekly goal will use your real plan');
+          else if (action === 'password') showToast('A secure reset link will be sent');
+          else if (action === 'privacy') showToast('Your learning data stays under your account');
+          else if (action === 'signout') showToast('Sign-out confirmation will appear here');
+        });
+      });
+
+      root.querySelector('#zm-edit-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const input = root.querySelector('#zm-name-input');
+        const name = input.value.trim();
+        if (!name) return;
+        root.querySelector('#zm-name').textContent = name;
+        root.querySelector('#zm-avatar').textContent = initials(name);
+        editOverlay.classList.remove('is-open');
+        showToast('Profile preview updated');
+      });
+
+      root.querySelector('#zm-time-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const value = root.querySelector('#zm-time-input').value;
+        if (!value) return;
+        const [hourText, minute] = value.split(':');
+        const hour = Number(hourText);
+        const displayHour = hour % 12 || 12;
+        root.querySelector('#zm-time-value').textContent = `${displayHour}:${minute} ${hour >= 12 ? 'PM' : 'AM'}`;
+        timeOverlay.classList.remove('is-open');
+        showToast('Learning time updated');
+      });
+
+      root.querySelector('#zm-reminders').addEventListener('change', event => {
+        showToast(event.target.checked ? 'Learning reminders enabled' : 'Learning reminders paused');
+      });
+
+      root.querySelectorAll('[data-nav]').forEach(button => {
+        button.addEventListener('click', () => {
+          if (button.dataset.nav !== 'profile') showToast(`${button.textContent.trim()} screen stays unchanged in this profile preview`);
+        });
+      });
+    })();
+  </script>
+</div>

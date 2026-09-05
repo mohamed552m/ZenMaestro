@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="6dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/reflection_question"
+        android:textColor="@color/chalk_line"
+        android:textSize="15sp" />
+
+    <RadioGroup
+        android:id="@+id/effortGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp">
+        <RadioButton android:id="@+id/easierOption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/easier_than_expected" />
+        <RadioButton android:id="@+id/rightOption" android:layout_width="match_parent" android:layout_height="wrap_content" android:checked="true" android:text="@string/about_right" />
+        <RadioButton android:id="@+id/harderOption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/harder_than_expected" />
+    </RadioGroup>
+
+    <EditText
+        android:id="@+id/reflectionNote"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_secondary_action"
+        android:gravity="top|start"
+        android:hint="@string/reflection_note_hint"
+        android:inputType="textCapSentences|textMultiLine"
+        android:padding="13dp"
+        android:textColor="@color/chalkboard"
+        android:textColorHint="@color/sage" />
+</LinearLayout>
