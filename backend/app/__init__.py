@@ -1,0 +1,1 @@
+"""CoachAI FastAPI application package."""

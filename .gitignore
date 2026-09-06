@@ -9,3 +9,17 @@
 .cxx/
 app/build/
 app/google-services.json
+
+# FastAPI backend: keep local environments, databases, and secrets out of Git.
+backend/.env*
+!backend/.env.example
+backend/.venv/
+backend/venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/*.db
+backend/*.db-*
+backend/*firebase-admin*.json
+backend/*service-account*.json
+backend/*credentials*.json
