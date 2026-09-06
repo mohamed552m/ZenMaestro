@@ -2,6 +2,7 @@ package com.zenmaestro.app
 
 import android.Manifest
 import android.graphics.Paint
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -24,6 +25,7 @@ class HomeFragment : Fragment() {
     private var _binding: ActivityHomeBinding? = null
     private val binding get() = _binding!!
     private lateinit var store: PlanStore
+    private var tasksChangedListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -48,6 +50,9 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         store = PlanStore(requireContext())
+        tasksChangedListener = store.registerOnTasksChanged {
+            if (_binding != null) renderHome()
+        }
         setupActions()
     }
 
@@ -309,6 +314,8 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        store.unregisterOnTasksChanged(tasksChangedListener)
+        tasksChangedListener = null
         _binding = null
         super.onDestroyView()
     }

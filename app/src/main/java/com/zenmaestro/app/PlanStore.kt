@@ -1,6 +1,7 @@
 package com.zenmaestro.app
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.google.firebase.auth.FirebaseAuth
 import org.json.JSONArray
 import org.json.JSONObject
@@ -18,7 +19,10 @@ data class PlanTask(
     val scheduledEnd: String? = null
 )
 
-class PlanStore(context: Context) {
+class PlanStore(
+    context: Context,
+    scheduleInitialSync: Boolean = true
+) {
 
     private val appContext = context.applicationContext
     private val userUid = FirebaseAuth.getInstance().currentUser?.uid
@@ -29,7 +33,9 @@ class PlanStore(context: Context) {
     )
 
     init {
-        userUid?.let { PlanSyncCoordinator.enqueue(appContext, it) }
+        if (scheduleInitialSync) {
+            userUid?.let { PlanSyncCoordinator.enqueue(appContext, it) }
+        }
     }
 
     fun load(): MutableList<PlanTask> = runCatching {
@@ -54,6 +60,30 @@ class PlanStore(context: Context) {
 
     fun save(tasks: List<PlanTask>) {
         val previous = load()
+        persist(tasks)
+        userUid?.let { uid ->
+            PlanSyncQueue.enqueueChanges(appContext, uid, previous, tasks)
+            PlanSyncCoordinator.enqueue(appContext, uid)
+        }
+    }
+
+    internal fun replaceFromRemote(tasks: List<PlanTask>) {
+        persist(tasks)
+    }
+
+    fun registerOnTasksChanged(onChanged: () -> Unit): SharedPreferences.OnSharedPreferenceChangeListener {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_TASKS) onChanged()
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        return listener
+    }
+
+    fun unregisterOnTasksChanged(listener: SharedPreferences.OnSharedPreferenceChangeListener?) {
+        listener?.let(preferences::unregisterOnSharedPreferenceChangeListener)
+    }
+
+    private fun persist(tasks: List<PlanTask>) {
         val array = JSONArray()
         tasks.forEach { task ->
             array.put(
@@ -73,10 +103,6 @@ class PlanStore(context: Context) {
         }
         preferences.edit().putString(KEY_TASKS, array.toString()).apply()
         NotificationCoordinator.sync(appContext, tasks)
-        userUid?.let { uid ->
-            PlanSyncQueue.enqueueChanges(appContext, uid, previous, tasks)
-            PlanSyncCoordinator.enqueue(appContext, uid)
-        }
     }
 
     fun clear() {

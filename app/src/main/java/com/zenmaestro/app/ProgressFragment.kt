@@ -1,5 +1,6 @@
 package com.zenmaestro.app
 
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,7 @@ class ProgressFragment : Fragment() {
     private var _binding: FragmentProgressBinding? = null
     private val binding get() = _binding!!
     private lateinit var store: PlanStore
+    private var tasksChangedListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -24,6 +26,9 @@ class ProgressFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         store = PlanStore(requireContext())
+        tasksChangedListener = store.registerOnTasksChanged {
+            if (_binding != null) renderProgress()
+        }
     }
 
     override fun onResume() {
@@ -105,6 +110,8 @@ class ProgressFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        store.unregisterOnTasksChanged(tasksChangedListener)
+        tasksChangedListener = null
         _binding = null
         super.onDestroyView()
     }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.firebase.auth.FirebaseAuth
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -22,6 +23,8 @@ class PlanSyncWorker(
         if (user == null || user.uid != userUid) return Result.success()
 
         return try {
+            val store = PlanStore(applicationContext, scheduleInitialSync = false)
+            enqueueLegacyLocalTasksIfNeeded(userUid, store)
             var tokens = BackendAuthTokenProvider.get(user, forceRefresh = false)
             for (operation in PlanSyncQueue.load(applicationContext, userUid)) {
                 var responseCode = sendOperation(baseUrl, tokens, operation)
@@ -38,13 +41,121 @@ class PlanSyncWorker(
                     else -> return Result.failure()
                 }
             }
-            Result.success()
+
+            // A new edit may have arrived while this worker was uploading. Let the
+            // replacement worker send it before pulling, so remote data never
+            // overwrites a pending local change.
+            if (PlanSyncQueue.load(applicationContext, userUid).isNotEmpty()) {
+                return Result.retry()
+            }
+
+            var response = fetchPlans(baseUrl, tokens)
+            if (response.code == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                tokens = BackendAuthTokenProvider.get(user, forceRefresh = true)
+                response = fetchPlans(baseUrl, tokens)
+            }
+            when {
+                response.code in 200..299 -> {
+                    if (PlanSyncQueue.load(applicationContext, userUid).isNotEmpty()) {
+                        return Result.retry()
+                    }
+                    store.replaceFromRemote(parsePlans(response.body))
+                    markBootstrapComplete(userUid)
+                    Result.success()
+                }
+                response.code == 408 || response.code == 429 || response.code >= 500 -> {
+                    Result.retry()
+                }
+                else -> Result.failure()
+            }
         } catch (_: IOException) {
             Result.retry()
         } catch (_: Exception) {
             Result.retry()
         }
     }
+
+    private fun enqueueLegacyLocalTasksIfNeeded(userUid: String, store: PlanStore) {
+        if (isBootstrapComplete(userUid)) return
+        if (PlanSyncQueue.load(applicationContext, userUid).isNotEmpty()) return
+        val localTasks = store.load()
+        if (localTasks.isNotEmpty()) {
+            PlanSyncQueue.enqueueChanges(
+                applicationContext,
+                userUid,
+                previous = emptyList(),
+                current = localTasks
+            )
+        }
+    }
+
+    private fun fetchPlans(
+        baseUrl: String,
+        tokens: BackendAuthTokens
+    ): SyncHttpResponse {
+        val connection = URL("$baseUrl/api/v1/plans").openConnection() as HttpURLConnection
+        return try {
+            connection.requestMethod = "GET"
+            connection.connectTimeout = TIMEOUT_MS
+            connection.readTimeout = TIMEOUT_MS
+            connection.setRequestProperty("Authorization", "Bearer ${tokens.idToken}")
+            connection.setRequestProperty("X-Firebase-AppCheck", tokens.appCheckToken)
+            connection.setRequestProperty("Accept", "application/json")
+            val code = connection.responseCode
+            val stream = if (code >= 400) connection.errorStream else connection.inputStream
+            SyncHttpResponse(code, stream?.bufferedReader()?.use { it.readText() }.orEmpty())
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun parsePlans(body: String): List<PlanTask> {
+        val plans = JSONArray(body)
+        val tasks = mutableListOf<Pair<Int, PlanTask>>()
+        repeat(plans.length()) { planIndex ->
+            val plan = plans.getJSONObject(planIndex)
+            val dateKey = plan.getString("plan_date")
+            val planTasks = plan.optJSONArray("tasks") ?: JSONArray()
+            repeat(planTasks.length()) { taskIndex ->
+                val item = planTasks.getJSONObject(taskIndex)
+                val status = item.optString("status", "pending")
+                tasks += item.optInt("order_index", taskIndex) to PlanTask(
+                    id = item.getString("id"),
+                    title = item.getString("title"),
+                    durationMinutes = item.optInt("estimated_minutes", 30).coerceIn(0, 1440),
+                    priority = item.optInt("priority", 3).coerceIn(1, 5),
+                    type = item.optString("task_type", "Learning").ifBlank { "Learning" },
+                    dateKey = dateKey,
+                    completed = status == "completed",
+                    isBreak = item.optBoolean("is_break", false),
+                    scheduledStart = optionalTime(item, "scheduled_start"),
+                    scheduledEnd = optionalTime(item, "scheduled_end")
+                )
+            }
+        }
+        return tasks
+            .sortedWith(compareBy<Pair<Int, PlanTask>> { it.second.dateKey }.thenBy { it.first })
+            .map { it.second }
+    }
+
+    private fun optionalTime(item: JSONObject, key: String): String? {
+        if (!item.has(key) || item.isNull(key)) return null
+        return item.optString(key)
+            .takeIf { it.isNotBlank() && it != "null" }
+            ?.take(5)
+    }
+
+    private fun isBootstrapComplete(userUid: String): Boolean =
+        syncPreferences(userUid).getBoolean(KEY_BOOTSTRAP_COMPLETE, false)
+
+    private fun markBootstrapComplete(userUid: String) {
+        syncPreferences(userUid).edit().putBoolean(KEY_BOOTSTRAP_COMPLETE, true).apply()
+    }
+
+    private fun syncPreferences(userUid: String) = applicationContext.getSharedPreferences(
+        "zen_plan_pull_$userUid",
+        Context.MODE_PRIVATE
+    )
 
     private fun sendOperation(
         baseUrl: String,
@@ -102,5 +213,8 @@ class PlanSyncWorker(
     companion object {
         const val KEY_USER_UID = "user_uid"
         private const val TIMEOUT_MS = 15_000
+        private const val KEY_BOOTSTRAP_COMPLETE = "bootstrap_complete"
     }
+
+    private data class SyncHttpResponse(val code: Int, val body: String)
 }

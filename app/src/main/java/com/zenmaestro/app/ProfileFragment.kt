@@ -1,5 +1,6 @@
 package com.zenmaestro.app
 
+import android.content.SharedPreferences
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.DialogInterface
@@ -28,6 +29,7 @@ class ProfileFragment : Fragment() {
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
     private lateinit var store: PlanStore
+    private var tasksChangedListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private lateinit var reflectionStore: ReflectionStore
     private val preferences by lazy {
         requireContext().getSharedPreferences(NotificationCoordinator.PROFILE_PREFERENCES, 0)
@@ -63,6 +65,9 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         store = PlanStore(requireContext())
+        tasksChangedListener = store.registerOnTasksChanged {
+            if (_binding != null) renderStats()
+        }
         reflectionStore = ReflectionStore(requireContext())
         renderAccount()
         renderLearningStart()
@@ -360,6 +365,8 @@ class ProfileFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        store.unregisterOnTasksChanged(tasksChangedListener)
+        tasksChangedListener = null
         _binding = null
         super.onDestroyView()
     }

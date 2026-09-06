@@ -3,6 +3,7 @@ package com.zenmaestro.app
 import android.app.Activity
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
@@ -37,6 +38,7 @@ class PlanFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var store: PlanStore
     private lateinit var plannerService: ZenPlannerService
+    private var tasksChangedListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var tasks = mutableListOf<PlanTask>()
     private val weekDates by lazy { buildCurrentWeek() }
     private var selectedDayIndex = currentDayIndex()
@@ -69,6 +71,10 @@ class PlanFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         store = PlanStore(requireContext())
+        tasksChangedListener = store.registerOnTasksChanged {
+            tasks = store.load()
+            if (_binding != null) renderSelectedDay()
+        }
         plannerService = ZenPlannerService()
         tasks = store.load()
         setupWeekSelector()
@@ -635,6 +641,8 @@ class PlanFragment : Fragment() {
     }.getOrDefault(value)
 
     override fun onDestroyView() {
+        store.unregisterOnTasksChanged(tasksChangedListener)
+        tasksChangedListener = null
         _binding = null
         super.onDestroyView()
     }
