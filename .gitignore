@@ -31,6 +31,20 @@ venv/
 /gtm-*.js
 /landing-awss.html
 
+# Local Android Emulator screenshots and UI Automator dumps.
+/runtime-*.png
+/runtime-*.xml
+/account-*.png
+/coachai-*.png
+/test-account-*.png
+/zenmaestro_*.png
+/app-*.xml
+/ask-*.xml
+/final-*.xml
+/send-*.xml
+/trace-*.xml
+/window*.xml
+
 # Android/Gradle local state and generated release artifacts.
 /android/.gradle-user/
 /android/.gradle-user-home/
