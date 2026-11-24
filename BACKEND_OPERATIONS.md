@@ -95,7 +95,19 @@ repository and backup export directories.
 - `GOOGLE_API_KEY` — Gemini provider credential for planning and voice
   transcription.
 - `COACHAI_AI_TIMEOUT_SECONDS` — bounded AI request timeout, `0.1` to `120`,
-  default `20`.
+  default `15`.
+- `COACHAI_CHAT_MODEL` — primary low-latency Gemini chat model, default
+  `gemini-3.1-flash-lite`.
+- `COACHAI_CHAT_FALLBACK_MODEL` — one bounded fallback used only for
+  transient provider failures, default `gemini-3.5-flash`.
+- `COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS` — hard deadline for the complete
+  isolated chat conversation, including tool rounds, default `30`.
+- `COACHAI_PLANNER_MODEL` / `COACHAI_PLANNER_FALLBACK_MODEL` — primary and
+  single transient-failure fallback for today's AI plan.
+- `COACHAI_FUTURE_PLANNER_MODEL` / `COACHAI_FUTURE_PLANNER_FALLBACK_MODEL` —
+  primary and single transient-failure fallback for Future Planning intent.
+- `COACHAI_VOICE_MODEL` / `COACHAI_VOICE_FALLBACK_MODEL` — primary and single
+  transient-failure fallback for speech transcription.
 - `COACHAI_EXTERNAL_TIMEOUT_SECONDS` — general external timeout, `1` to `120`,
   default `20`.
 

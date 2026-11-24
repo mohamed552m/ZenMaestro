@@ -47,6 +47,8 @@ The APK built from `D:\CoachAI` was installed successfully on the connected phon
 - After adding a task: reload revision → reschedule pending flexible work → reload the complete day.
 - Running, completed, and fixed-time work is protected during rescheduling.
 - The UI reloads all server tasks so occupied slots are visible instead of making a later start look unexplained.
+- Smart Schedule, manual Move, and scheduling Undo now reload the selected day from the backend after a successful write; late reloads cannot overwrite a newly selected day.
+- Smart Schedule, manual Move, and scheduling Undo share an in-flight write guard so repeated taps cannot submit overlapping schedule mutations.
 
 ### Focus timer and notifications
 
@@ -59,6 +61,7 @@ The APK built from `D:\CoachAI` was installed successfully on the connected phon
 - 12/24-hour formatting works in quiet-hours controls and time pickers.
 - FCM device registration uses the real Firebase Messaging token.
 - Backend FCM delivery is data-only so Android channel preferences remain authoritative.
+- PostgreSQL device registration serializes duplicate device/token identities with transaction-level advisory locks, preventing parallel registration races without weakening tenant ownership checks.
 - Notification taps route to the relevant app section.
 
 ### Future Planning
@@ -114,11 +117,19 @@ The APK built from `D:\CoachAI` was installed successfully on the connected phon
 - Android: clean build from `D:\CoachAI`, 45 tasks executed, `BUILD SUCCESSFUL`.
 - Android unit tests: Schedule date policy, navigation stack, analytics window policy, focus notification formatting, notification channels, repositories, themes/settings.
 - Backend: 69 Future Planning/application tests passed.
+- Notification registration/tenant/application focused regression: 26 tests passed, including stable PostgreSQL device/token locking (2026-11-11).
 - Request-body middleware: declared and streamed 413 tests passed.
 - Task lifecycle tested directly: create → start → complete with version increments.
 - Future apply replay tested directly: same idempotency key returns the same operation ID without duplicates.
 - A focused 56-test backend run found one outdated test fixture; the fixture was corrected and the failed case passed on rerun.
 - Device checks: task create, More, Start, focus mode, Complete, Future Planning apply/undo, profile load, Home/API loads, and Analytics window requests.
+- Full backend regression on 2026-11-11: 479 tests passed, 1 skipped.
+- Android unit tests and `assembleDebug` passed after the auth UI/startup and Future Planning duplicate-Apply fixes.
+- Headless API 35 emulator smoke test passed on 2026-11-11: cold launch completed, Login/Create account/Forgot password rendered with the restored orange/navy design and decorative artwork, and AndroidRuntime reported no crash.
+- Firebase Android configuration was refreshed on 2026-11-11 with Android and Web OAuth clients. Gradle generated `default_web_client_id`, the Android test/build passed, and Google Sign-In opened the system Credential Manager without a developer/configuration error.
+- Firebase-to-backend authentication was verified end to end on 2026-11-11 with a disposable Email/Password account: Firebase issued the ID token, authenticated `GET /v1/profile` returned `200`, then the Firebase account and its local PostgreSQL user were deleted.
+- First-login provisioning now has a deterministic race-path regression test proving one user and one profile row survive a parallel unique-key conflict.
+- Future Planning rejects repeated Apply/Undo actions while a mutation is in flight and rejects a successful Apply response without a valid operation ID.
 
 ## 5. Known follow-up work
 
@@ -139,7 +150,10 @@ The APK built from `D:\CoachAI` was installed successfully on the connected phon
 
 ### Authentication edge case
 
-After reinstalling or restarting the local backend, the first parallel API calls can occasionally receive `401 InvalidIdTokenError` before Firebase refresh completes. A later request succeeds after refresh, but the next developer should add a single automatic token-refresh-and-retry on 401 at the shared Android API layer so users never need to retry manually.
+Resolved in the Android client: authenticated repositories now force-refresh the
+Firebase ID token and retry once after `401`. Parallel failures for the same rejected
+token share the refreshed token. `403` responses are represented separately and are
+not retried. Mutation retries reuse the same request body and idempotency key.
 
 ### Maintenance warnings
 
@@ -200,8 +214,8 @@ Use `.env.example`, `README.md`, `FRONTEND_HANDOFF.md`, `android/README.md`, and
 
 1. Clone `main` and provide local Firebase/environment files.
 2. Run backend tests and Android unit tests.
-3. Implement shared 401 token-refresh-and-retry.
+3. Provide a refreshed Firebase Android config with Google Web OAuth client and SHA fingerprints.
 4. Finish production FCM worker and Calendar OAuth deployment configuration.
-5. Test clean install, registration, sign-in, task lifecycle, rescheduling, focus notification, Future Planning, Analytics windows, Coach, Profile, and sign-out.
+5. Test clean install, registration, sign-in, token refresh, task lifecycle, rescheduling, focus notification, Future Planning, Analytics windows, Coach, Profile, and sign-out.
 6. Add CI, signed release build, monitoring, and store-release checks.
 
