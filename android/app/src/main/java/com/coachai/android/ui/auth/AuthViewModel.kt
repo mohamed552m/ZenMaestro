@@ -2,6 +2,7 @@ package com.coachai.android.ui.auth
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.coachai.android.BuildConfig
 import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
@@ -10,6 +11,8 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class PasswordResetLinkState { None, Verifying, Ready, Invalid, Complete }
 
@@ -41,7 +44,19 @@ class AuthViewModel(
         )
     }
 
-    init { auth.addAuthStateListener(listener) }
+    init {
+        auth.addAuthStateListener(listener)
+        viewModelScope.launch {
+            delay(4_000)
+            if (_uiState.value.loading) {
+                _uiState.value = _uiState.value.copy(
+                    signedIn = auth.currentUser != null,
+                    userId = auth.currentUser?.uid,
+                    loading = false,
+                )
+            }
+        }
+    }
 
     fun signIn(email: String, password: String) {
         val cleanEmail = email.trim()
