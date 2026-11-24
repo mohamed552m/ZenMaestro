@@ -54,11 +54,15 @@ class SegmentAnalyticsTests(unittest.TestCase):
 
     def test_loader_keeps_one_snapshot_for_split_logical_task(self):
         tempdir = tempfile.TemporaryDirectory()
+        db = None
         try:
             path = Path(tempdir.name) / "test.db"
             db = Database(f"sqlite:///{path.as_posix()}")
             db.execute("INSERT INTO users (user_id,email,display_name) VALUES ('u','u@x.com','U')")
-            db.execute("INSERT INTO plans (user_id,plan_date,raw_input) VALUES ('u','2026-09-30','x')")
+            db.execute(
+                "INSERT INTO plans (user_id,plan_date,raw_input) VALUES ('u',?,'x')",
+                (date.today().isoformat(),),
+            )
             db.connection.commit()
             plan = db.fetch_one("SELECT plan_id FROM plans")["plan_id"]
             task = db.add_task(plan, "u", "Split", estimated_minutes=60)
@@ -70,8 +74,9 @@ class SegmentAnalyticsTests(unittest.TestCase):
             snapshots = AnalyticsLoader(db).load_snapshots("u", 30)
             self.assertEqual(1, len(snapshots))
             self.assertEqual(2, len(snapshots[0].segments))
-            db.close()
         finally:
+            if db is not None:
+                db.close()
             tempdir.cleanup()
 
 

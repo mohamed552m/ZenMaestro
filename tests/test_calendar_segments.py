@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -68,7 +69,10 @@ class CalendarSegmentTests(unittest.TestCase):
         path = Path(self.tempdir.name) / "test.db"
         self.db = Database(f"sqlite:///{path.as_posix()}")
         self.db.execute("INSERT INTO users (user_id,email,display_name) VALUES ('u','u@x.com','U')")
-        self.db.execute("INSERT INTO plans (user_id,plan_date,raw_input) VALUES ('u','2026-09-30','x')")
+        self.db.execute(
+            "INSERT INTO plans (user_id,plan_date,raw_input) VALUES ('u',?,'x')",
+            ((date.today() + timedelta(days=1)).isoformat(),),
+        )
         self.db.connection.commit()
         self.plan = self.db.fetch_one("SELECT plan_id FROM plans")["plan_id"]
         self.fake = FakeCalendar()

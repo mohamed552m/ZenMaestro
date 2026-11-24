@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 import tempfile
 import unittest
@@ -21,7 +21,9 @@ class MobileSyncTests(unittest.TestCase):
         self.db.create_user(
             "u1", "u1@example.com", "User", "Africa/Cairo", password_hash="secret-hash"
         )
-        self.plan = self.db.create_plan("u1", date(2026, 10, 8), "private raw input")
+        self.plan = self.db.create_plan(
+            "u1", date.today() + timedelta(days=1), "private raw input"
+        )
         principal = AuthenticatedPrincipal("u1", "u1@example.com", "User", {"sub": "u1"})
         self.tasks = TaskApplicationService(self.db, principal)
         self.repo = MobileRepository(self.db)

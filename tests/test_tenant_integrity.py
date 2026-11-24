@@ -29,8 +29,9 @@ class TenantIntegrityTests(unittest.TestCase):
         self.p2 = AuthenticatedPrincipal("u2", "two@example.com", "Two", {})
         self.app1 = CoachAIApplication(self.db, self.p1)
         self.app2 = CoachAIApplication(self.db, self.p2)
-        self.plan1 = self.db.create_plan("u1", date(2026, 10, 9), "one")
-        self.plan2 = self.db.create_plan("u2", date(2026, 10, 9), "two")
+        mutable_day = date.today() + timedelta(days=1)
+        self.plan1 = self.db.create_plan("u1", mutable_day, "one")
+        self.plan2 = self.db.create_plan("u2", mutable_day, "two")
         self.category1 = self.db.create_category("u1", "Private one", "#112233")
         self.category2 = self.db.create_category("u2", "Private two", "#445566")
         self.task1 = self.app1.tasks.create_task(
