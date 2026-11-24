@@ -7,6 +7,7 @@ import tempfile
 from types import ModuleType
 import unittest
 from unittest.mock import patch
+from sqlalchemy.exc import IntegrityError
 
 from backend_errors import AuthenticationRequired
 from database import Database
@@ -81,8 +82,8 @@ class FirebaseAuthenticationTests(unittest.TestCase):
             calls.append(("initialize", options))
             return firebase_app
 
-        def verify_id_token(token, *, app, check_revoked):
-            calls.append(("verify", token, app, check_revoked))
+        def verify_id_token(token, *, app, check_revoked, clock_skew_seconds):
+            calls.append(("verify", token, app, check_revoked, clock_skew_seconds))
             return self.claims()
 
         firebase_admin.get_app = get_app
@@ -99,7 +100,7 @@ class FirebaseAuthenticationTests(unittest.TestCase):
 
         self.assertEqual("firebase-u1", principal.user_id)
         self.assertEqual(("initialize", {"projectId": self.project_id}), calls[0])
-        self.assertEqual(("verify", "signed-token", firebase_app, True), calls[1])
+        self.assertEqual(("verify", "signed-token", firebase_app, True, 5), calls[1])
 
 
 class PrincipalProvisioningTests(unittest.TestCase):
@@ -129,6 +130,28 @@ class PrincipalProvisioningTests(unittest.TestCase):
         self.assertEqual("firebase-u1", first["user_id"])
         self.assertEqual(first["user_id"], second["user_id"])
         self.assertEqual(1, self.db.fetch_one("SELECT COUNT(*) AS n FROM users")["n"])
+
+    def test_concurrent_first_login_reuses_row_created_by_parallel_request(self):
+        principal = self.principal()
+        create_user = self.db.create_user
+
+        def parallel_insert_then_unique_conflict(**values):
+            create_user(**values)
+            raise IntegrityError("duplicate user", params=None, orig=Exception("duplicate"))
+
+        with patch.object(
+            self.db,
+            "create_user",
+            side_effect=parallel_insert_then_unique_conflict,
+        ):
+            user = get_or_create_user_from_principal(self.db, principal)
+
+        self.assertEqual(principal.user_id, user["user_id"])
+        self.assertEqual(1, self.db.fetch_one("SELECT COUNT(*) AS n FROM users")["n"])
+        self.assertEqual(
+            1,
+            self.db.fetch_one("SELECT COUNT(*) AS n FROM user_profiles")["n"],
+        )
 
     def test_disabled_local_account_cannot_be_provisioned(self):
         get_or_create_user_from_principal(self.db, self.principal())

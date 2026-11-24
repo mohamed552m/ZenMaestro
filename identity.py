@@ -44,12 +44,16 @@ class FirebaseTokenVerifier:
         project_id: str,
         verify_callable: Callable[..., Mapping[str, Any]] | None = None,
         check_revoked: bool = True,
+        clock_skew_seconds: int = 5,
     ) -> None:
         if not project_id.strip():
             raise ConfigurationError("FIREBASE_PROJECT_ID is required.")
         self.project_id = project_id.strip()
         self._verify_callable = verify_callable
         self.check_revoked = check_revoked
+        if not 0 <= clock_skew_seconds <= 60:
+            raise ConfigurationError("Firebase clock skew must be between 0 and 60 seconds.")
+        self.clock_skew_seconds = clock_skew_seconds
 
     def _verifier(self) -> Callable[..., Mapping[str, Any]]:
         if self._verify_callable is not None:
@@ -101,7 +105,11 @@ class FirebaseTokenVerifier:
             raise AuthenticationRequired("A Firebase ID token is required.")
         try:
             claims = dict(
-                self._verifier()(token.strip(), check_revoked=self.check_revoked)
+                self._verifier()(
+                    token.strip(),
+                    check_revoked=self.check_revoked,
+                    clock_skew_seconds=self.clock_skew_seconds,
+                )
             )
         except Exception as exc:
             # Provider exception details are deliberately not exposed.
