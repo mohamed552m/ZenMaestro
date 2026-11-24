@@ -235,7 +235,7 @@ def create_coach_router(application_dependency: Callable[..., Any]) -> APIRouter
     ):
         _protect_private_response(response)
         try:
-            reply = application.coaching.create_chatbot().send_message(request.message)
+            reply = application.coaching.chat(request.message)
         except ValueError as exc:
             from backend_errors import ConfigurationError
             raise ConfigurationError("The AI coach is not configured.") from exc

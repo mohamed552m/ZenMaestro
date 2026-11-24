@@ -19,6 +19,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from ai_provider import (
+    DEFAULT_FALLBACK_MODEL,
+    DEFAULT_FAST_MODEL,
+    configured_model,
+    is_transient_provider_error,
+)
 from backend_errors import ConfigurationError, ExternalProviderFailure
 from config import MAX_FUTURE_PLANNING_WEEKS
 from domain_validation import (
@@ -205,12 +211,22 @@ User request:
 class PlanningRequestInterpreter:
     """LCEL + Gemini intent extraction followed by deterministic task matching."""
 
-    _MODEL_NAME = "gemini-3.8-flash"
+    _MODEL_NAME = DEFAULT_FAST_MODEL
+    _FALLBACK_MODEL_NAME = DEFAULT_FALLBACK_MODEL
 
     def __init__(self, *, metrics: BackendMetrics | None = None) -> None:
         self._chain: Optional[Any] = None
         self._parser: Optional[PydanticOutputParser] = None
         self._metrics = metrics or BackendMetrics()
+        self._model_name = configured_model(
+            "COACHAI_FUTURE_PLANNER_MODEL",
+            self._MODEL_NAME,
+        )
+        self._fallback_model_name = configured_model(
+            "COACHAI_FUTURE_PLANNER_FALLBACK_MODEL",
+            self._FALLBACK_MODEL_NAME,
+        )
+        self._active_model_name = self._model_name
 
     @staticmethod
     def _timeout_seconds() -> float:
@@ -226,8 +242,9 @@ class PlanningRequestInterpreter:
             )
         return value
 
-    def _build_chain(self):
-        if self._chain is not None:
+    def _build_chain(self, model_name: str | None = None):
+        requested_model = model_name or self._model_name
+        if self._chain is not None and requested_model == self._active_model_name:
             return self._chain
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
@@ -238,14 +255,15 @@ class PlanningRequestInterpreter:
             ("human", _USER_PROMPT),
         ])
         llm = ChatGoogleGenerativeAI(
-            model=self._MODEL_NAME,
+            model=requested_model,
             temperature=0.0,
             google_api_key=api_key,
-            max_retries=2,
+            max_retries=1,
             timeout=self._timeout_seconds(),
             max_output_tokens=MAX_AI_OUTPUT_TOKENS,
         )
         self._chain = prompt | llm | self._parser
+        self._active_model_name = requested_model
         return self._chain
 
     @staticmethod
@@ -279,29 +297,49 @@ class PlanningRequestInterpreter:
     ) -> StructuredPlanningRequest:
         cleaned = validate_ai_input(raw_input)
         chain = self._build_chain()
+        payload = {
+            "local_date": local_date.isoformat(),
+            "planning_start": planning_start.isoformat(),
+            "planning_end": planning_end.isoformat(),
+            "candidate_tasks": self._candidate_context(candidates),
+            "raw_input": cleaned,
+            "format_instructions": self._parser.get_format_instructions(),
+        }
         started = monotonic_time.monotonic()
         try:
-            intent = chain.invoke({
-                "local_date": local_date.isoformat(),
-                "planning_start": planning_start.isoformat(),
-                "planning_end": planning_end.isoformat(),
-                "candidate_tasks": self._candidate_context(candidates),
-                "raw_input": cleaned,
-                "format_instructions": self._parser.get_format_instructions(),
-            })
+            intent = chain.invoke(payload)
         except Exception as exc:
+            failed_model = self._active_model_name
             self._metrics.ai_call(
                 "google",
-                self._MODEL_NAME,
+                failed_model,
                 succeeded=False,
                 duration_seconds=monotonic_time.monotonic() - started,
             )
-            raise ExternalProviderFailure(
-                "The AI planner could not interpret this request safely."
-            ) from exc
+            if (
+                is_transient_provider_error(exc)
+                and failed_model != self._fallback_model_name
+            ):
+                started = monotonic_time.monotonic()
+                try:
+                    intent = self._build_chain(self._fallback_model_name).invoke(payload)
+                except Exception as fallback_exc:
+                    self._metrics.ai_call(
+                        "google",
+                        self._active_model_name,
+                        succeeded=False,
+                        duration_seconds=monotonic_time.monotonic() - started,
+                    )
+                    raise ExternalProviderFailure(
+                        "The AI planner could not interpret this request safely."
+                    ) from fallback_exc
+            else:
+                raise ExternalProviderFailure(
+                    "The AI planner could not interpret this request safely."
+                ) from exc
         self._metrics.ai_call(
             "google",
-            self._MODEL_NAME,
+            self._active_model_name,
             succeeded=True,
             duration_seconds=monotonic_time.monotonic() - started,
         )

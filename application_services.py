@@ -1501,6 +1501,12 @@ class AICoachingApplicationService(PrincipalService):
 
         return ChatbotService(self.user_id, db=self.db)
 
+    def chat(self, message: str) -> str:
+        """Return one provider-backed chat reply within a hard total deadline."""
+        from chatbot_service import send_message_bounded
+
+        return send_message_bounded(self.user_id, message, db=self.db)
+
 
 class CoachAIApplication:
     """One request-scoped aggregate assembled from a trusted principal."""

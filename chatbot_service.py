@@ -17,7 +17,10 @@ import logging
 import os
 import random
 import re
+import subprocess
+import sys
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Optional
 
 from text_matching import normalize_for_matching
@@ -45,7 +48,28 @@ logger.setLevel(logging.INFO)
 # Constants
 # ─────────────────────────────────────────────────────────────
 
-_MODEL_NAME: str = "gemini-3.8-flash"
+_MODEL_NAME: str = "gemini-3.1-flash-lite"
+_FALLBACK_MODEL_NAME: str = "gemini-3.5-flash"
+
+
+def _configured_model(env_name: str, default: str) -> str:
+    """Return one bounded Gemini model identifier from the environment."""
+    value = os.getenv(env_name, default).strip()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,63}", value):
+        raise ConfigurationError(f"{env_name} is invalid.")
+    return value
+
+
+def _is_transient_provider_error(exc: Exception) -> bool:
+    """Identify retryable provider failures without inspecting sensitive text."""
+    status_code = getattr(exc, "status_code", None)
+    if status_code in {408, 429, 500, 502, 503, 504}:
+        return True
+    return type(exc).__name__.lower() in {
+        "resourceexhausted",
+        "servererror",
+        "serviceunavailable",
+    }
 
 _SYSTEM_PROMPT: str = """\
 You are **CoachAI Assistant**, an AI productivity coach built into the CoachAI application.
@@ -285,6 +309,21 @@ def _chat_output_tokens() -> int:
         raise ConfigurationError("COACHAI_CHAT_OUTPUT_TOKENS must be an integer.") from exc
     if not 256 <= value <= 4096:
         raise ConfigurationError("COACHAI_CHAT_OUTPUT_TOKENS must be between 256 and 4096.")
+    return value
+
+
+def _chat_process_timeout_seconds() -> float:
+    """Bound the whole provider conversation, including tool rounds."""
+    try:
+        value = float(os.getenv("COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS", "30"))
+    except ValueError as exc:
+        raise ConfigurationError(
+            "COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS must be numeric."
+        ) from exc
+    if not 5 <= value <= 60:
+        raise ConfigurationError(
+            "COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS must be between 5 and 60 seconds."
+        )
     return value
 
 
@@ -970,6 +1009,12 @@ class ChatbotService:
         self._chat: Any = None
         self._client: Any = None
         self._max_tool_rounds = _chat_tool_round_limit()
+        self._model_name = _configured_model("COACHAI_CHAT_MODEL", _MODEL_NAME)
+        self._fallback_model_name = _configured_model(
+            "COACHAI_CHAT_FALLBACK_MODEL",
+            _FALLBACK_MODEL_NAME,
+        )
+        self._active_model_name = self._model_name
 
         api_key = _get_api_key()
         if not api_key:
@@ -988,7 +1033,7 @@ class ChatbotService:
                 api_version="v1",
                 timeout=max(100, int(_ai_timeout_seconds() * 1_000)),
                 retry_options=types.HttpRetryOptions(
-                    attempts=2,
+                    attempts=1,
                     initial_delay=0.5,
                     max_delay=2.0,
                     exp_base=2.0,
@@ -1013,10 +1058,18 @@ class ChatbotService:
             max_output_tokens=_chat_output_tokens(),
         )
 
-        self._chat = self._client.chats.create(
-            model=_MODEL_NAME,
+        self._chat = self._create_chat(self._model_name)
+
+    def _create_chat(self, model_name: str) -> Any:
+        return self._client.chats.create(
+            model=model_name,
             config=self._config,
         )
+
+    def _send_with_tools(self, user_message: str) -> str:
+        response = self._chat.send_message(user_message)
+        response = self._handle_function_calls(response)
+        return self._extract_text(response)
 
     def send_message(self, user_message: str) -> str:
         """
@@ -1052,11 +1105,24 @@ class ChatbotService:
             return messages["quota"]
 
         try:
-            response = self._chat.send_message(user_message)
-            response = self._handle_function_calls(response)
-            return self._extract_text(response)
+            return self._send_with_tools(user_message)
 
         except Exception as exc:
+            if (
+                _is_transient_provider_error(exc)
+                and self._active_model_name != self._fallback_model_name
+            ):
+                logger.warning(
+                    "Primary AI model temporarily unavailable; using configured fallback "
+                    "| error_type=%s",
+                    type(exc).__name__,
+                )
+                try:
+                    self._chat = self._create_chat(self._fallback_model_name)
+                    self._active_model_name = self._fallback_model_name
+                    return self._send_with_tools(user_message)
+                except Exception as fallback_exc:
+                    exc = fallback_exc
             category = _classify_and_log_error(exc, context="send_message")
             messages = _ERROR_MESSAGES_AR if _is_arabic(user_message) else _ERROR_MESSAGES_EN
             return messages[category]
@@ -1137,6 +1203,7 @@ class ChatbotService:
                 "I had trouble processing the response. Please try again. / "
                 "حصلت مشكلة في معالجة الرد، جرب تاني."
             )
+
 
     def send_message_stream(self, user_message: str):
         """
@@ -1251,6 +1318,120 @@ class ChatbotService:
         category = _classify_and_log_error(exc, context="send_message_stream")
         messages = _ERROR_MESSAGES_AR if _is_arabic(user_message) else _ERROR_MESSAGES_EN
         return messages[category]
+
+
+def _local_grounded_reply(user_id: str, user_message: str, *, db=None) -> str:
+    """Return a useful, data-grounded answer when the provider exceeds its deadline."""
+    arabic = _is_arabic(user_message)
+    try:
+        today = _impl_get_today_tasks(user_id, db=db)
+    except Exception as exc:
+        logger.warning(
+            "Local coach fallback could not load today's plan | error_type=%s",
+            type(exc).__name__,
+        )
+        today = {"has_plan": False}
+
+    if not today.get("has_plan"):
+        if arabic:
+            return (
+                "خدمة المدرب الذكي بتاخد وقت أطول من المعتاد حاليًا. "
+                "مفيش خطة محفوظة لليوم، فابدأ بإضافة أهم مهمة واحدة وحدد لها وقتًا واقعيًا."
+            )
+        return (
+            "The AI coach is taking longer than usual. You do not have a saved plan "
+            "for today, so start by adding one important task with a realistic duration."
+        )
+
+    tasks = list(today.get("tasks") or [])
+    unfinished = [task for task in tasks if task.get("status") != "completed"]
+    unfinished.sort(
+        key=lambda task: (
+            int(task.get("priority") or 3),
+            str(task.get("scheduled_start") or "99:99"),
+        )
+    )
+    if not unfinished:
+        if arabic:
+            return (
+                "خدمة المدرب الذكي بتاخد وقت أطول من المعتاد، لكن حسب خطتك المحفوظة "
+                "كل مهام اليوم مكتملة. راجع النتائج أو حضّر أول أولوية لبكرة."
+            )
+        return (
+            "The AI coach is taking longer than usual, but your saved plan shows that "
+            "all of today's tasks are complete. Review the results or prepare tomorrow's first priority."
+        )
+
+    first = unfinished[0]
+    title = str(first.get("title") or "your highest-priority task").strip()[:120]
+    minutes = max(0, int(first.get("estimated_minutes") or 0))
+    remaining_minutes = sum(
+        max(0, int(task.get("estimated_minutes") or 0)) for task in unfinished
+    )
+    if arabic:
+        duration = f" لمدة {minutes} دقيقة" if minutes else ""
+        return (
+            "خدمة المدرب الذكي بتاخد وقت أطول من المعتاد، فده ملخص سريع من خطتك المحفوظة: "
+            f"عندك {len(unfinished)} مهام غير مكتملة بإجمالي حوالي {remaining_minutes} دقيقة. "
+            f"ابدأ بـ «{title}»{duration}، وبعدها راجع باقي الأولويات."
+        )
+    duration = f" for {minutes} minutes" if minutes else ""
+    return (
+        "The AI coach is taking longer than usual, so here is a quick answer from your saved plan: "
+        f"you have {len(unfinished)} unfinished task(s), about {remaining_minutes} minutes total. "
+        f"Start with “{title}”{duration}, then review the remaining priorities."
+    )
+
+
+def send_message_bounded(user_id: str, user_message: str, *, db=None) -> str:
+    """Run provider-backed chat in an isolated process with a hard total deadline."""
+    if not user_message or not user_message.strip():
+        return (
+            "It looks like you sent an empty message. How can I help with your "
+            "productivity today?"
+        )
+    if len(user_message) > MAX_AI_INPUT_CHARS:
+        return "That message is too long to process safely. Please shorten it and try again."
+    casual_reply = _try_casual_shortcut(user_message)
+    if casual_reply is not None:
+        return casual_reply
+    if not _get_api_key():
+        raise ValueError("The AI service is not configured.")
+
+    worker = Path(__file__).with_name("chatbot_worker.py")
+    payload = json.dumps(
+        {"user_id": str(user_id), "message": user_message},
+        ensure_ascii=False,
+    )
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(worker)],
+            input=payload,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            timeout=_chat_process_timeout_seconds(),
+            check=False,
+            cwd=str(worker.parent),
+        )
+        if completed.returncode == 0:
+            decoded = json.loads(completed.stdout)
+            reply = decoded.get("reply")
+            if isinstance(reply, str) and reply.strip():
+                return reply.strip()[: MAX_AI_OUTPUT_TOKENS * 4]
+        logger.warning(
+            "Isolated AI chat failed; using local grounded fallback | return_code=%s",
+            completed.returncode,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning("Isolated AI chat exceeded its total deadline; using local fallback")
+    except (OSError, UnicodeError, json.JSONDecodeError, TypeError) as exc:
+        logger.warning(
+            "Isolated AI chat could not be read; using local fallback | error_type=%s",
+            type(exc).__name__,
+        )
+    return _local_grounded_reply(user_id, user_message, db=db)
 
 
 # ─────────────────────────────────────────────────────────────

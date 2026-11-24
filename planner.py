@@ -8,6 +8,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import PydanticOutputParser
 
+from ai_provider import (
+    DEFAULT_FALLBACK_MODEL,
+    DEFAULT_FAST_MODEL,
+    configured_model,
+    is_transient_provider_error,
+)
 from backend_errors import ConfigurationError, ExternalProviderFailure
 from domain_validation import (
     MAX_AI_OUTPUT_TOKENS,
@@ -275,9 +281,10 @@ _PLANNER_USER_PROMPT: str = (
 
 class PlannerEngine:
 
-    _MODEL_NAME: str = "gemini-3.8-flash"
+    _MODEL_NAME: str = DEFAULT_FAST_MODEL
+    _FALLBACK_MODEL_NAME: str = DEFAULT_FALLBACK_MODEL
     _TEMPERATURE: float = 0.2
-    _MAX_RETRIES: int = 2
+    _MAX_RETRIES: int = 1
 
     def __init__(self, *, metrics: BackendMetrics | None = None) -> None:
         # Validated lazily in _build_chain(), not at import/instantiation
@@ -287,13 +294,20 @@ class PlannerEngine:
         self._chain: Optional[Any] = None
         self._parser: Optional[PydanticOutputParser] = None
         self._metrics = metrics or BackendMetrics()
+        self._model_name = configured_model("COACHAI_PLANNER_MODEL", self._MODEL_NAME)
+        self._fallback_model_name = configured_model(
+            "COACHAI_PLANNER_FALLBACK_MODEL",
+            self._FALLBACK_MODEL_NAME,
+        )
+        self._active_model_name = self._model_name
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _build_chain(self) -> Any:
-        if self._chain is not None:
+    def _build_chain(self, model_name: str | None = None) -> Any:
+        requested_model = model_name or self._model_name
+        if self._chain is not None and requested_model == self._active_model_name:
             return self._chain
 
         self._api_key = _require_google_api_key()
@@ -305,7 +319,7 @@ class PlannerEngine:
         ])
 
         llm = ChatGoogleGenerativeAI(
-            model=self._MODEL_NAME,
+            model=requested_model,
             temperature=self._TEMPERATURE,
             google_api_key=self._api_key,
             max_retries=self._MAX_RETRIES,
@@ -314,6 +328,7 @@ class PlannerEngine:
         )
 
         self._chain = prompt | llm | self._parser
+        self._active_model_name = requested_model
         return self._chain
 
     @staticmethod
@@ -374,32 +389,51 @@ class PlannerEngine:
 
         chain = self._build_chain()
 
+        payload = {
+            "raw_input": cleaned_input,
+            "existing_categories": self._format_existing_categories(
+                existing_categories or []
+            ),
+            "calendar_context": self._format_calendar_context(calendar_events),
+            "format_instructions": self._parser.get_format_instructions(),
+        }
+
         started = time.monotonic()
         try:
-            result: DayPlanOutput = chain.invoke({
-                "raw_input": cleaned_input,
-                "existing_categories": self._format_existing_categories(
-                    existing_categories or []
-                ),
-                "calendar_context": self._format_calendar_context(
-                    calendar_events
-                ),
-                "format_instructions": self._parser.get_format_instructions(),
-            })
+            result: DayPlanOutput = chain.invoke(payload)
         except Exception as exc:
+            failed_model = self._active_model_name
             self._metrics.ai_call(
                 "google",
-                self._MODEL_NAME,
+                failed_model,
                 succeeded=False,
                 duration_seconds=time.monotonic() - started,
             )
-            raise ExternalProviderFailure(
-                "The AI planner could not produce a valid draft."
-            ) from exc
+            if (
+                is_transient_provider_error(exc)
+                and failed_model != self._fallback_model_name
+            ):
+                started = time.monotonic()
+                try:
+                    result = self._build_chain(self._fallback_model_name).invoke(payload)
+                except Exception as fallback_exc:
+                    self._metrics.ai_call(
+                        "google",
+                        self._active_model_name,
+                        succeeded=False,
+                        duration_seconds=time.monotonic() - started,
+                    )
+                    raise ExternalProviderFailure(
+                        "The AI planner could not produce a valid draft."
+                    ) from fallback_exc
+            else:
+                raise ExternalProviderFailure(
+                    "The AI planner could not produce a valid draft."
+                ) from exc
 
         self._metrics.ai_call(
             "google",
-            self._MODEL_NAME,
+            self._active_model_name,
             succeeded=True,
             duration_seconds=time.monotonic() - started,
         )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import date, time
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -17,7 +17,7 @@ from backend_errors import (
     RateLimited,
     ResourceNotFound,
 )
-from chatbot_service import ChatbotService
+from chatbot_service import ChatbotService, send_message_bounded
 from database import Database
 from domain_validation import (
     MAX_AI_TASKS,
@@ -27,8 +27,15 @@ from domain_validation import (
     MAX_TASK_TITLE_CHARS,
     MAX_TRANSCRIPT_CHARS,
 )
-from planner import DayPlanOutput, TaskOutput
+from planner import DayPlanOutput, PlannerEngine, TaskOutput
 from planner_service import PlannerService
+from planning_request import (
+    InterpretedPlanningIntent,
+    InterpretedTask,
+    PlanningInputMethod,
+    PlanningRequestInterpreter,
+    PlanningScope,
+)
 from recommendation import RecommendationEngine, RecommendationOutput
 from rate_limiter import DatabaseRateLimiter, RateLimitExceeded
 from identity import AuthenticatedPrincipal
@@ -134,7 +141,7 @@ class SafeAiBoundaryTests(unittest.TestCase):
                 {
                     "GOOGLE_API_KEY": "test-key",
                     "COACHAI_AI_TIMEOUT_SECONDS": "1.25",
-                    "COACHAI_VOICE_MODEL": "gemini-3.8-flash",
+                    "COACHAI_VOICE_MODEL": "gemini-3.1-flash-lite",
                 },
             ),
             patch("voice_service.genai.Client", return_value=client) as client_type,
@@ -150,14 +157,109 @@ class SafeAiBoundaryTests(unittest.TestCase):
         options = client_type.call_args.kwargs["http_options"]
         self.assertEqual("v1", options.api_version)
         self.assertEqual(1250, options.timeout)
-        self.assertEqual(3, options.retry_options.attempts)
+        self.assertEqual(1, options.retry_options.attempts)
         self.assertEqual(2.0, options.retry_options.max_delay)
         request = client.models.generate_content.call_args.kwargs
-        self.assertEqual("gemini-3.8-flash", request["model"])
+        self.assertEqual("gemini-3.1-flash-lite", request["model"])
         self.assertEqual("audio/wav", request["contents"][1].inline_data.mime_type)
         self.assertEqual(b"audio-bytes", request["contents"][1].inline_data.data)
         counters = sink.snapshot()["counters"]["coachai_ai_calls_total"]
         self.assertEqual(1.0, next(iter(counters.values())))
+
+    def test_voice_uses_one_fallback_for_transient_provider_failure(self) -> None:
+        class TransientProviderError(Exception):
+            status_code = 503
+
+        client = MagicMock()
+        client.models.generate_content.side_effect = [
+            TransientProviderError(),
+            SimpleNamespace(text="fallback transcript"),
+        ]
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GOOGLE_API_KEY": "test-key",
+                    "COACHAI_VOICE_MODEL": "gemini-3.1-flash-lite",
+                    "COACHAI_VOICE_FALLBACK_MODEL": "gemini-3.5-flash",
+                },
+            ),
+            patch("voice_service.genai.Client", return_value=client),
+        ):
+            result = transcribe_audio(b"audio", "audio/wav")
+
+        self.assertEqual("fallback transcript", result)
+        self.assertEqual(
+            ["gemini-3.1-flash-lite", "gemini-3.5-flash"],
+            [
+                call.kwargs["model"]
+                for call in client.models.generate_content.call_args_list
+            ],
+        )
+
+    def test_daily_planner_uses_one_fallback_for_transient_failure(self) -> None:
+        class TransientProviderError(Exception):
+            status_code = 503
+
+        primary = MagicMock()
+        primary.invoke.side_effect = TransientProviderError()
+        fallback = MagicMock()
+        fallback.invoke.return_value = DayPlanOutput(
+            planning_notes="Fallback",
+            tasks=[_task("Study")],
+        )
+        parser = MagicMock()
+        parser.get_format_instructions.return_value = "json"
+        engine = PlannerEngine()
+        engine._parser = parser
+        with patch.object(engine, "_build_chain", side_effect=[primary, fallback]) as build:
+            result = engine.plan_day("Study for 30 minutes")
+
+        self.assertEqual("Study", result.tasks[0].title)
+        self.assertEqual(2, build.call_count)
+        self.assertEqual("gemini-3.5-flash", build.call_args_list[1].args[0])
+
+    def test_future_planner_uses_one_fallback_for_transient_failure(self) -> None:
+        class TransientProviderError(Exception):
+            status_code = 503
+
+        primary = MagicMock()
+        primary.invoke.side_effect = TransientProviderError()
+        fallback = MagicMock()
+        fallback.invoke.return_value = InterpretedPlanningIntent(
+            tasks=[
+                InterpretedTask(
+                    task_title="Study",
+                    remaining_minutes=30,
+                    duration_source="user_explicit",
+                    priority=3,
+                )
+            ]
+        )
+        parser = MagicMock()
+        parser.get_format_instructions.return_value = "json"
+        interpreter = PlanningRequestInterpreter()
+        interpreter._parser = parser
+        today = date.today()
+        with patch.object(
+            interpreter,
+            "_build_chain",
+            side_effect=[primary, fallback],
+        ) as build:
+            result = interpreter.interpret(
+                "Study for 30 minutes",
+                candidates=[],
+                scope=PlanningScope.SPECIFIC_DAY,
+                input_method=PlanningInputMethod.WRITE,
+                planning_start=today,
+                planning_end=today,
+                work_day_start=time(9, 0),
+                local_date=today,
+            )
+
+        self.assertEqual("Study", result.tasks[0].title)
+        self.assertEqual(2, build.call_count)
+        self.assertEqual("gemini-3.5-flash", build.call_args_list[1].args[0])
 
     def test_voice_errors_are_safe_and_failed_outputs_are_measured(self) -> None:
         oversized = MagicMock()
@@ -269,7 +371,7 @@ class SafeAiBoundaryTests(unittest.TestCase):
         options = client_type.call_args.kwargs["http_options"]
         self.assertEqual("v1", options.api_version)
         self.assertEqual(1500, options.timeout)
-        self.assertEqual(2, options.retry_options.attempts)
+        self.assertEqual(1, options.retry_options.attempts)
         config = client.chats.create.call_args.kwargs["config"]
         self.assertEqual(1024, config.max_output_tokens)
         self.assertEqual(2, chatbot._max_tool_rounds)
@@ -277,6 +379,74 @@ class SafeAiBoundaryTests(unittest.TestCase):
             "too long",
             chatbot.send_message("x" * (MAX_AI_INPUT_CHARS + 1)).lower(),
         )
+
+    def test_chatbot_uses_fallback_only_for_transient_provider_failure(self) -> None:
+        class TransientProviderError(Exception):
+            status_code = 503
+
+        primary_chat = MagicMock()
+        primary_chat.send_message.side_effect = TransientProviderError()
+        fallback_chat = MagicMock()
+        fallback_chat.send_message.return_value = SimpleNamespace(
+            candidates=[],
+            text="Fallback response",
+        )
+        client = MagicMock()
+        client.chats.create.side_effect = [primary_chat, fallback_chat]
+
+        with (
+            patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}),
+            patch("google.genai.Client", return_value=client),
+        ):
+            chatbot = ChatbotService("u1", db=self.db)
+            response = chatbot.send_message("Help me plan today")
+
+        self.assertEqual("Fallback response", response)
+        self.assertEqual(
+            ["gemini-3.1-flash-lite", "gemini-3.5-flash"],
+            [call.kwargs["model"] for call in client.chats.create.call_args_list],
+        )
+
+    def test_chatbot_does_not_fallback_for_non_transient_failure(self) -> None:
+        primary_chat = MagicMock()
+        primary_chat.send_message.side_effect = ValueError("invalid request")
+        client = MagicMock()
+        client.chats.create.return_value = primary_chat
+
+        with (
+            patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}),
+            patch("google.genai.Client", return_value=client),
+        ):
+            chatbot = ChatbotService("u1", db=self.db)
+            response = chatbot.send_message("Help me plan today")
+
+        self.assertIn("not available", response)
+        client.chats.create.assert_called_once()
+
+    def test_bounded_chat_returns_isolated_worker_reply(self) -> None:
+        completed = SimpleNamespace(
+            returncode=0,
+            stdout='{"reply": "Bounded reply"}',
+        )
+        with (
+            patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}),
+            patch("chatbot_service.subprocess.run", return_value=completed),
+        ):
+            reply = send_message_bounded("u1", "Help me focus", db=self.db)
+        self.assertEqual("Bounded reply", reply)
+
+    def test_bounded_chat_timeout_returns_local_grounded_reply(self) -> None:
+        import subprocess
+
+        with (
+            patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}),
+            patch(
+                "chatbot_service.subprocess.run",
+                side_effect=subprocess.TimeoutExpired("worker", 1),
+            ),
+        ):
+            reply = send_message_bounded("u1", "Help me focus", db=self.db)
+        self.assertIn("AI coach is taking longer", reply)
 
     def test_recommendation_provider_error_is_safe_and_output_items_are_bounded(self) -> None:
         engine = RecommendationEngine()

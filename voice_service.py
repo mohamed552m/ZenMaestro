@@ -20,7 +20,6 @@ Usage:
 from __future__ import annotations
 
 import os
-import re
 import time
 from typing import Any, Optional
 
@@ -28,6 +27,12 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from ai_provider import (
+    DEFAULT_FALLBACK_MODEL,
+    DEFAULT_FAST_MODEL,
+    configured_model,
+    is_transient_provider_error,
+)
 from backend_errors import ConfigurationError
 from domain_validation import (
     MAX_AI_OUTPUT_TOKENS,
@@ -73,10 +78,14 @@ def _ai_timeout_seconds() -> float:
 
 def _model_name() -> str:
     """Return one bounded model identifier for this deployment."""
-    value = os.getenv("COACHAI_VOICE_MODEL", _DEFAULT_MODEL_NAME).strip()
-    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,63}", value):
-        raise ConfigurationError("COACHAI_VOICE_MODEL is invalid.")
-    return value
+    return configured_model("COACHAI_VOICE_MODEL", _DEFAULT_MODEL_NAME)
+
+
+def _fallback_model_name() -> str:
+    return configured_model(
+        "COACHAI_VOICE_FALLBACK_MODEL",
+        _DEFAULT_FALLBACK_MODEL_NAME,
+    )
 
 
 def _new_client(api_key: str) -> genai.Client:
@@ -88,7 +97,7 @@ def _new_client(api_key: str) -> genai.Client:
             api_version="v1",
             timeout=timeout_ms,
             retry_options=types.HttpRetryOptions(
-                attempts=3,
+                attempts=1,
                 initial_delay=0.5,
                 max_delay=2.0,
                 exp_base=2.0,
@@ -105,7 +114,8 @@ def _new_client(api_key: str) -> genai.Client:
 
 # Same model family used by planner.py / recommendation.py, for one
 # consistent Gemini version across the whole app.
-_DEFAULT_MODEL_NAME: str = "gemini-3.8-flash"
+_DEFAULT_MODEL_NAME: str = DEFAULT_FAST_MODEL
+_DEFAULT_FALLBACK_MODEL_NAME: str = DEFAULT_FALLBACK_MODEL
 
 _ALLOWED_AUDIO_MIME_TYPES = frozenset({
     "audio/flac",
@@ -207,30 +217,44 @@ def transcribe_audio(
 
     api_key = _require_google_api_key()
     model_name = _model_name()
+    fallback_model_name = _fallback_model_name()
     metric_sink = metrics or BackendMetrics()
     started = time.monotonic()
     client: genai.Client | None = None
 
     try:
         client = _new_client(api_key)
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[
-                types.Part.from_text(text=_TRANSCRIBE_PROMPT),
-                types.Part.from_bytes(
-                    data=bytes(audio_bytes), mime_type=normalized_mime
-                ),
-            ],
-            config=types.GenerateContentConfig(
-                # Deterministic, literal transcription rather than the
-                # model's default "creative" temperature — this is what
-                # stops it from confidently inventing plausible-sounding
-                # speech when it isn't sure what it heard.
-                temperature=0.0,
-                candidate_count=1,
-                max_output_tokens=min(MAX_AI_OUTPUT_TOKENS, 4096),
-            ),
+        contents = [
+            types.Part.from_text(text=_TRANSCRIBE_PROMPT),
+            types.Part.from_bytes(data=bytes(audio_bytes), mime_type=normalized_mime),
+        ]
+        config = types.GenerateContentConfig(
+            temperature=0.0,
+            candidate_count=1,
+            max_output_tokens=min(MAX_AI_OUTPUT_TOKENS, 4096),
         )
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=config,
+            )
+        except Exception as exc:
+            metric_sink.ai_call(
+                "google",
+                model_name,
+                succeeded=False,
+                duration_seconds=time.monotonic() - started,
+            )
+            if not is_transient_provider_error(exc) or model_name == fallback_model_name:
+                raise
+            started = time.monotonic()
+            model_name = fallback_model_name
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=config,
+            )
     except Exception as exc:
         metric_sink.ai_call(
             "google",
