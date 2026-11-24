@@ -27,7 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -109,7 +109,7 @@ fun FuturePlanningScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, "Back", tint = TextPrimary)
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = TextPrimary)
                 }
                 Column(Modifier.weight(1f)) {
                     Text("Future Planning", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)

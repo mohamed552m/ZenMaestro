@@ -156,7 +156,7 @@ class FuturePlanningViewModel(
     }
 
     fun apply(onApplied: () -> Unit) {
-        if (mutableState.value.operationId != null) return
+        if (mutableState.value.applying || mutableState.value.operationId != null) return
         val request = buildRequest() ?: return
         if (mutableState.value.preview == null) {
             mutableState.update { it.copy(error = "Preview the distribution before saving it.") }
@@ -180,6 +180,7 @@ class FuturePlanningViewModel(
     }
 
     fun undo(onUndone: () -> Unit) {
+        if (mutableState.value.applying) return
         val operationId = mutableState.value.operationId ?: return
         mutableState.update { it.copy(applying = true, error = null) }
         viewModelScope.launch {

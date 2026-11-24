@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.EventAvailable
@@ -148,7 +148,7 @@ private fun Header(onBack: () -> Unit) {
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back", tint = TextPrimary) }
+        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = TextPrimary) }
         Column(Modifier.padding(start = 4.dp)) {
             Text("Calendar connections", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
             Text("Plan around the time you already committed", color = TextMuted, style = MaterialTheme.typography.bodySmall)

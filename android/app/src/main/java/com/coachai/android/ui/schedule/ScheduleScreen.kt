@@ -4,8 +4,10 @@ import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Build
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -200,6 +202,7 @@ fun ScheduleScreen(
     var previousSchedule by remember { mutableStateOf<List<ScheduleTask>?>(null) }
     var plannerInsight by remember { mutableStateOf<String?>(null) }
     var reviewMessage by remember { mutableStateOf<String?>(null) }
+    var scheduleWriteInFlight by remember { mutableStateOf(false) }
     val activeTimerTask = tasks.firstOrNull { it.state == TaskState.Running || it.state == TaskState.Paused }
     val focusNotificationVisible = rememberFocusTimerNotification(activeTimerTask)
 
@@ -255,6 +258,28 @@ fun ScheduleScreen(
                 duration = if (undo == null) SnackbarDuration.Short else SnackbarDuration.Long,
             )
             if (result == SnackbarResult.ActionPerformed) undo?.invoke()
+        }
+    }
+
+    fun reloadSelectedPlan(onLoaded: () -> Unit = {}, onFinished: () -> Unit = {}) {
+        val requestedDate = selectedDate
+        val sync = syncViewModel ?: run {
+            onFinished()
+            return
+        }
+        sync.loadPlanDay(requestedDate) { result ->
+            // Do not let a late response overwrite a different day the user
+            // has already selected.
+            if (selectedDate != requestedDate) {
+                onFinished()
+                return@loadPlanDay
+            }
+            result.onSuccess { day ->
+                replaceSelectedTasks(day.tasks)
+                day.planId?.let { setSelectedPlan(it, day.scheduleRevision) }
+                onLoaded()
+            }.onFailure { message(ScheduleSyncViewModel.message(it)) }
+            onFinished()
         }
     }
 
@@ -362,6 +387,11 @@ fun ScheduleScreen(
             message("Schedule built from ${displayTime(workStart)}.")
             return
         }
+        if (scheduleWriteInFlight) {
+            message("A schedule change is already being saved.")
+            return
+        }
+        scheduleWriteInFlight = true
         val before = tasks.toList()
         sync.ensurePlanDate(selectedDate) { targetResult ->
             targetResult.onSuccess { target ->
@@ -371,22 +401,24 @@ fun ScheduleScreen(
                         previousSchedule = before
                         setSelectedPlan(target.planId, applied.scheduleRevision)
                         sessionState.lastScheduleOperationId = applied.operationId
-                        tasks.indices.forEach { index ->
-                            val task = tasks[index]
-                            tasks[index] = task.copy(
-                                planId = target.planId,
-                                scheduledTime = applied.scheduledStarts[task.id.toLong()]
-                                    ?: task.fixedTime,
-                            )
-                        }
-                        markSelectedChanged()
-                        appliedWorkStart = workStart
-                        plannerInsight = "Schedule built from ${displayTime(workStart)}."
-                        if (closeSettings) activeSheet = null
-                        message("Schedule saved. Your day starts at ${displayTime(workStart)}.")
-                    }.onFailure { message(ScheduleSyncViewModel.message(it)) }
+                        reloadSelectedPlan(
+                            onLoaded = {
+                                appliedWorkStart = workStart
+                                plannerInsight = "Schedule built from ${displayTime(workStart)}."
+                                if (closeSettings) activeSheet = null
+                                message("Schedule saved. Your day starts at ${displayTime(workStart)}.")
+                            },
+                            onFinished = { scheduleWriteInFlight = false },
+                        )
+                    }.onFailure {
+                        scheduleWriteInFlight = false
+                        message(ScheduleSyncViewModel.message(it))
+                    }
                 }
-            }.onFailure { message(ScheduleSyncViewModel.message(it)) }
+            }.onFailure {
+                scheduleWriteInFlight = false
+                message(ScheduleSyncViewModel.message(it))
+            }
         }
     }
 
@@ -647,15 +679,25 @@ fun ScheduleScreen(
             onUndoSchedule = {
                 val operationId = sessionState.lastScheduleOperationId
                 val old = previousSchedule
-                if (syncViewModel != null && operationId != null && old != null) {
+                if (scheduleWriteInFlight) {
+                    message("A schedule change is already being saved.")
+                } else if (syncViewModel != null && operationId != null && old != null) {
+                    scheduleWriteInFlight = true
                     syncViewModel.undoSchedule(operationId) { result ->
                         result.onSuccess { revision ->
-                            tasks.clear(); tasks.addAll(old)
-                            previousSchedule = null
-                            sessionState.lastScheduleOperationId = null
                             selectedPlanId()?.let { setSelectedPlan(it, revision) }
-                            message("The complete previous schedule was restored.")
-                        }.onFailure { message(ScheduleSyncViewModel.message(it)) }
+                            reloadSelectedPlan(
+                                onLoaded = {
+                                    previousSchedule = null
+                                    sessionState.lastScheduleOperationId = null
+                                    message("The complete previous schedule was restored.")
+                                },
+                                onFinished = { scheduleWriteInFlight = false },
+                            )
+                        }.onFailure {
+                            scheduleWriteInFlight = false
+                            message(ScheduleSyncViewModel.message(it))
+                        }
                     }
                 } else {
                     message("No saved scheduling operation is available to undo.")
@@ -691,20 +733,33 @@ fun ScheduleScreen(
                             replaceTask(task.copy(scheduledTime = time))
                             activeSheet = null
                             message("${task.title} moved in the preview.")
+                        } else if (scheduleWriteInFlight) {
+                            message("A schedule change is already being saved.")
                         } else {
+                            scheduleWriteInFlight = true
                             sync.ensurePlanDate(selectedDate) { targetResult ->
                                 targetResult.onSuccess { target ->
                                     sync.move(task.id.toLong(), target.scheduleRevision, time) { result ->
                                         result.onSuccess { moved ->
-                                            replaceTask(task.copy(scheduledTime = time))
                                             setSelectedPlan(target.planId, moved.scheduleRevision)
                                             sessionState.lastScheduleOperationId = moved.operationId
-                                            previousSchedule = tasks.map { item -> if (item.id == before.id) before else item }
-                                            activeSheet = null
-                                            message("${task.title} moved and saved.")
-                                        }.onFailure { message(ScheduleSyncViewModel.message(it)) }
+                                            previousSchedule = tasks.toList()
+                                            reloadSelectedPlan(
+                                                onLoaded = {
+                                                    activeSheet = null
+                                                    message("${task.title} moved and saved.")
+                                                },
+                                                onFinished = { scheduleWriteInFlight = false },
+                                            )
+                                        }.onFailure {
+                                            scheduleWriteInFlight = false
+                                            message(ScheduleSyncViewModel.message(it))
+                                        }
                                     }
-                                }.onFailure { message(ScheduleSyncViewModel.message(it)) }
+                                }.onFailure {
+                                    scheduleWriteInFlight = false
+                                    message(ScheduleSyncViewModel.message(it))
+                                }
                             }
                         }
                     }
@@ -1311,23 +1366,42 @@ private fun AddTaskSheet(
     var transcribing by remember { mutableStateOf(false) }
     var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var recordingFile by remember { mutableStateOf<File?>(null) }
+    var recordingStartedAt by remember { mutableStateOf(0L) }
+    var recordingPeakAmplitude by remember { mutableIntStateOf(0) }
+    var player by remember { mutableStateOf<MediaPlayer?>(null) }
+    var playing by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val startRecording = {
         runCatching {
+            player?.release()
+            player = null
+            playing = false
             val file = File(context.cacheDir, "voice-${UUID.randomUUID()}.m4a")
             val activeRecorder = createAudioRecorder(context, file)
             activeRecorder.start()
             recordingFile?.delete()
             recordingFile = file
             recorder = activeRecorder
+            recordingStartedAt = SystemClock.elapsedRealtime()
+            recordingPeakAmplitude = 0
+            transcript = ""
+            pendingDraft = null
             recording = true
         }.onFailure {
             recorder?.release()
             recorder = null
             recording = false
             onMessage("The microphone couldn't start. Check the permission and try again.")
+        }
+    }
+
+    LaunchedEffect(recording) {
+        while (recording) {
+            delay(100)
+            val amplitude = runCatching { recorder?.maxAmplitude ?: 0 }.getOrDefault(0)
+            recordingPeakAmplitude = max(recordingPeakAmplitude, amplitude)
         }
     }
     val microphonePermission = rememberLauncherForActivityResult(
@@ -1341,6 +1415,7 @@ private fun AddTaskSheet(
         onDispose {
             runCatching { recorder?.stop() }
             recorder?.release()
+            player?.release()
             recordingFile?.delete()
         }
     }
@@ -1430,20 +1505,29 @@ private fun AddTaskSheet(
                 }
                 tab == AddTab.Ai -> item {
                     Column {
-                        LabeledTextField("What's on your mind for today?", description, { description = it }, "Study for 90 minutes, gym for 45 minutes, finish the report…", minLines = 4)
+                        LabeledTextField(
+                            "What's on your mind for today?",
+                            description,
+                            {
+                                description = it
+                                pendingDraft = null
+                            },
+                            "Study for 90 minutes, gym for 45 minutes, finish the report…",
+                            minLines = 4,
+                        )
                         Spacer(Modifier.height(14.dp))
                         pendingDraft?.let { draft ->
-                            NoticeCard("🛡 Today's draft is ${formatMinutes(draft.tasks.sumOf { it.minutes })}, above your usual 3h capacity.", Amber)
-                            draft.tasks.forEach { Text("• ${it.title} · ${it.minutes}m", Modifier.padding(top = 6.dp), color = TextMuted) }
-                            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SmallOutlinedButton("Shorten all", Modifier.weight(1f), {
+                            PlanningDraftReview(
+                                draft = draft,
+                                onEditInput = { pendingDraft = null },
+                                onShorten = {
                                     val total = draft.tasks.sumOf { it.minutes }.coerceAtLeast(1)
                                     pendingDraft = draft.copy(tasks = draft.tasks.map {
                                         it.copy(minutes = max(15, ((it.minutes * 180.0 / total) / 5).toInt() * 5))
                                     })
-                                })
-                                SmallOutlinedButton("Create anyway", Modifier.weight(1f), { onGenerated(pendingDraft ?: draft, "AI Planner") }, accent = true)
-                            }
+                                },
+                                onSave = { onGenerated(pendingDraft ?: draft, "AI Planner") },
+                            )
                         } ?: PrimaryButton(if (aiGenerating) "Generating…" else "Generate my plan") {
                             if (description.isBlank()) {
                                 onMessage("Describe at least one task first.")
@@ -1451,10 +1535,8 @@ private fun AddTaskSheet(
                                 aiGenerating = true
                                 onGenerateAi(description) { result ->
                                     aiGenerating = false
-                                    result.onSuccess { draft ->
-                                        if (draft.tasks.sumOf { it.minutes } > 180) pendingDraft = draft
-                                        else onGenerated(draft, "AI Planner")
-                                    }.onFailure { onMessage("The planner isn't available right now. Try again later.") }
+                                    result.onSuccess { draft -> pendingDraft = draft }
+                                        .onFailure { onMessage("The planner isn't available right now. Try again later.") }
                                 }
                             }
                         }
@@ -1465,18 +1547,30 @@ private fun AddTaskSheet(
                         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Raised, contentColor = TextPrimary), border = BorderStroke(1.dp, Border), shape = RoundedCornerShape(14.dp)) {
                             Column(Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("◉", color = Accent, fontSize = 34.sp)
-                                Text(if (recording) "Listening… describe your day." else "Record your tasks, then review the transcript before generating.", color = TextMuted, textAlign = TextAlign.Center)
+                                Text(
+                                    if (recording && recordingPeakAmplitude >= 300) "Voice detected — keep speaking."
+                                    else if (recording) "Listening… speak clearly near the microphone."
+                                    else "Record your tasks, play them back, then review the transcript before generating.",
+                                    color = if (recordingPeakAmplitude >= 300) Success else TextMuted,
+                                    textAlign = TextAlign.Center,
+                                )
                                 SmallOutlinedButton(if (recording) "Stop recording" else "Start recording", Modifier.fillMaxWidth().padding(top = 12.dp), {
                                     if (recording) {
+                                        val durationMs = SystemClock.elapsedRealtime() - recordingStartedAt
                                         val stopped = runCatching { recorder?.stop() }.isSuccess
                                         recorder?.release()
                                         recorder = null
                                         recording = false
-                                        if (stopped) onMessage("Recording ready to transcribe.")
+                                        val file = recordingFile
+                                        val usable = stopped &&
+                                            durationMs >= 1_000L &&
+                                            file != null &&
+                                            file.length() >= 4_096L
+                                        if (usable) onMessage("Recording ready. Play it back before transcribing.")
                                         else {
                                             recordingFile?.delete()
                                             recordingFile = null
-                                            onMessage("The recording was too short. Try again and speak for a little longer.")
+                                            onMessage("The recording was too short or could not be saved. Record again.")
                                         }
                                     } else if (
                                         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
@@ -1488,49 +1582,172 @@ private fun AddTaskSheet(
                                 }, accent = recording)
                             }
                         }
-                        if (!recording && recordingFile != null) SmallOutlinedButton(
-                            if (transcribing) "Transcribing…" else "Transcribe recording",
-                            Modifier.fillMaxWidth().padding(top = 8.dp),
-                            {
-                                val file = recordingFile ?: return@SmallOutlinedButton
-                                if (!transcribing) {
-                                    transcribing = true
-                                    scope.launch {
-                                        val audio = runCatching { withContext(Dispatchers.IO) { file.readBytes() } }
-                                        audio.fold(
-                                            onSuccess = { bytes ->
-                                                onTranscribe(bytes, "audio/mp4") { result ->
-                                                    transcribing = false
-                                                    result.onSuccess { value -> transcript = value }
-                                                        .onFailure { onMessage("Voice transcription isn't available right now. Try typing instead.") }
+                        if (!recording && recordingFile != null) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SmallOutlinedButton(
+                                    if (playing) "Stop playback" else "Play recording",
+                                    Modifier.weight(1f),
+                                    {
+                                        if (playing) {
+                                            player?.stop()
+                                            player?.release()
+                                            player = null
+                                            playing = false
+                                        } else {
+                                            val file = recordingFile ?: return@SmallOutlinedButton
+                                            runCatching {
+                                                MediaPlayer().also { activePlayer ->
+                                                    activePlayer.setDataSource(file.absolutePath)
+                                                    activePlayer.setOnCompletionListener {
+                                                        it.release()
+                                                        if (player === it) player = null
+                                                        playing = false
+                                                    }
+                                                    activePlayer.prepare()
+                                                    activePlayer.start()
+                                                    player = activePlayer
+                                                    playing = true
                                                 }
-                                            },
-                                            onFailure = {
-                                                transcribing = false
-                                                onMessage("The recording couldn't be read. Please record it again.")
-                                            },
-                                        )
+                                            }.onFailure {
+                                                player?.release()
+                                                player = null
+                                                playing = false
+                                                onMessage("The recording couldn't be played. Please record it again.")
+                                            }
+                                        }
+                                    },
+                                )
+                                SmallOutlinedButton(
+                                    "Record again",
+                                    Modifier.weight(1f),
+                                    {
+                                        player?.release()
+                                        player = null
+                                        playing = false
+                                        recordingFile?.delete()
+                                        recordingFile = null
+                                        transcript = ""
+                                        pendingDraft = null
+                                    },
+                                )
+                            }
+                            SmallOutlinedButton(
+                                if (transcribing) "Transcribing…" else "Transcribe recording",
+                                Modifier.fillMaxWidth().padding(top = 8.dp),
+                                {
+                                    val file = recordingFile ?: return@SmallOutlinedButton
+                                    if (!transcribing) {
+                                        transcribing = true
+                                        scope.launch {
+                                            val audio = runCatching { withContext(Dispatchers.IO) { file.readBytes() } }
+                                            audio.fold(
+                                                onSuccess = { bytes ->
+                                                    onTranscribe(bytes, "audio/mp4") { result ->
+                                                        transcribing = false
+                                                        result.onSuccess { value -> transcript = value }
+                                                            .onFailure { onMessage("Voice transcription isn't available right now. Try typing instead.") }
+                                                    }
+                                                },
+                                                onFailure = {
+                                                    transcribing = false
+                                                    onMessage("The recording couldn't be read. Please record it again.")
+                                                },
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                        )
-                        if (transcript.isNotBlank()) {
-                            LabeledTextField("Review transcript", transcript, { transcript = it }, minLines = 4)
+                                },
+                            )
+                        }
+                        if (transcript.isNotBlank() && pendingDraft == null) {
+                            LabeledTextField(
+                                "Review transcript",
+                                transcript,
+                                {
+                                    transcript = it
+                                    pendingDraft = null
+                                },
+                                minLines = 4,
+                            )
                             Spacer(Modifier.height(14.dp))
                             PrimaryButton("Generate plan from voice") {
                                 if (!aiGenerating) {
                                     aiGenerating = true
                                     onGenerateAi(transcript) { result ->
                                         aiGenerating = false
-                                        result.onSuccess { draft -> onGenerated(draft, "Voice Planner") }
+                                        result.onSuccess { draft -> pendingDraft = draft }
                                             .onFailure { onMessage("The planner isn't available right now. Try again later.") }
                                     }
                                 }
                             }
                         }
+                        pendingDraft?.let { draft ->
+                            PlanningDraftReview(
+                                draft = draft,
+                                onEditInput = { pendingDraft = null },
+                                onShorten = {
+                                    val total = draft.tasks.sumOf { it.minutes }.coerceAtLeast(1)
+                                    pendingDraft = draft.copy(tasks = draft.tasks.map {
+                                        it.copy(minutes = max(15, ((it.minutes * 180.0 / total) / 5).toInt() * 5))
+                                    })
+                                },
+                                onSave = { onGenerated(pendingDraft ?: draft, "Voice Planner") },
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlanningDraftReview(
+    draft: PlanningDraftBundle,
+    onEditInput: () -> Unit,
+    onShorten: () -> Unit,
+    onSave: () -> Unit,
+) {
+    val totalMinutes = draft.tasks.sumOf { it.minutes }
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            "Review draft before saving",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        draft.tasks.forEach { task ->
+            Text(
+                "• ${task.title} · ${task.minutes}m",
+                Modifier.padding(top = 6.dp),
+                color = TextMuted,
+            )
+        }
+        if (totalMinutes > 180) {
+            NoticeCard(
+                "🛡 This draft is ${formatMinutes(totalMinutes)}, above your usual 3h capacity.",
+                Amber,
+            )
+        }
+        SmallOutlinedButton(
+            "Edit input",
+            Modifier.fillMaxWidth().padding(top = 10.dp),
+            onEditInput,
+        )
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (totalMinutes > 180) {
+                SmallOutlinedButton("Shorten all", Modifier.weight(1f), onShorten)
+            }
+            SmallOutlinedButton(
+                if (totalMinutes > 180) "Save anyway" else "Save plan",
+                Modifier.weight(1f),
+                onSave,
+                accent = true,
+            )
         }
     }
 }
@@ -1804,7 +2021,7 @@ private fun createAudioRecorder(context: Context, file: File): MediaRecorder {
         MediaRecorder()
     }
     return recorder.apply {
-        setAudioSource(MediaRecorder.AudioSource.MIC)
+        setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
         setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
         setAudioSamplingRate(44_100)

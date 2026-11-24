@@ -29,7 +29,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.QueryStats
-import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -437,7 +437,7 @@ private fun Composer(
                 ) {
                     IconButton(onClick = onSend, enabled = canSend) {
                         Icon(
-                            Icons.Outlined.Send,
+                            Icons.AutoMirrored.Outlined.Send,
                             contentDescription = "Send message",
                             tint = if (canSend) Color(0xFF21130D) else TextSubtle,
                             modifier = Modifier.size(21.dp),
