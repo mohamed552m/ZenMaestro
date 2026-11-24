@@ -220,6 +220,26 @@ class NotificationRepository:
     # ------------------------------------------------------------------
     # Devices
     # ------------------------------------------------------------------
+    def _lock_device_registration(
+        self,
+        *,
+        device_id: str,
+        provider: str,
+        push_token: Optional[str],
+    ) -> None:
+        if not self.db.is_postgresql:
+            return
+        identities = {f"device:{device_id}"}
+        if push_token:
+            identities.add(f"token:{provider}:{push_token}")
+        # A stable order prevents two registrations that exchange identities
+        # from acquiring the same advisory locks in opposite order.
+        for identity in sorted(identities):
+            self.db.fetch_one(
+                "SELECT pg_advisory_xact_lock(hashtextextended(?, 0)) AS acquired",
+                (f"coachai:notification:{identity}",),
+            )
+
     def register_device(
         self,
         user_id: str,
@@ -251,6 +271,11 @@ class NotificationRepository:
         except (ZoneInfoNotFoundError, ValueError) as exc:
             raise ValueError("Device timezone must be a valid IANA timezone name.") from exc
         with self.db.transaction():
+            self._lock_device_registration(
+                device_id=device_id,
+                provider=provider,
+                push_token=push_token,
+            )
             existing = self.db.fetch_one(
                 "SELECT user_id FROM notification_devices WHERE device_id=?",
                 (device_id,),

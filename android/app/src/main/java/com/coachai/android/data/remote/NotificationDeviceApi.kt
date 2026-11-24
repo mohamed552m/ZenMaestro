@@ -11,6 +11,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
+sealed interface NotificationDeviceRemoteResult {
+    data object Success : NotificationDeviceRemoteResult
+    data object Unauthorized : NotificationDeviceRemoteResult
+    data object Forbidden : NotificationDeviceRemoteResult
+    data object Failure : NotificationDeviceRemoteResult
+}
+
 class NotificationDeviceApi(
     private val baseUrl: String,
     private val allowDebugCleartext: Boolean = BuildConfig.DEBUG,
@@ -23,7 +30,7 @@ class NotificationDeviceApi(
         locale: String,
         timezone: String,
         idempotencyKey: String,
-    ): Boolean {
+    ): NotificationDeviceRemoteResult {
         val body = JSONObject()
             .put("device_id", deviceId)
             .put("push_token", pushToken)
@@ -35,7 +42,11 @@ class NotificationDeviceApi(
         return request("POST", "/v1/notifications/devices", idToken, idempotencyKey, body)
     }
 
-    suspend fun invalidate(idToken: String, deviceId: String, idempotencyKey: String): Boolean {
+    suspend fun invalidate(
+        idToken: String,
+        deviceId: String,
+        idempotencyKey: String,
+    ): NotificationDeviceRemoteResult {
         val encodedId = URLEncoder.encode(deviceId, Charsets.UTF_8.name())
         return request("DELETE", "/v1/notifications/devices/$encodedId", idToken, idempotencyKey)
     }
@@ -46,7 +57,7 @@ class NotificationDeviceApi(
         idToken: String,
         idempotencyKey: String,
         body: String? = null,
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): NotificationDeviceRemoteResult = withContext(Dispatchers.IO) {
         try {
             require(idToken.isNotBlank() && idempotencyKey.isNotBlank())
             require(idempotencyKey.length <= 200)
@@ -66,16 +77,21 @@ class NotificationDeviceApi(
                     connection.setRequestProperty("Content-Type", "application/json")
                     connection.outputStream.use { it.write(bytes) }
                 }
-                connection.responseCode in 200..299
+                when (connection.responseCode) {
+                    in 200..299 -> NotificationDeviceRemoteResult.Success
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> NotificationDeviceRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> NotificationDeviceRemoteResult.Forbidden
+                    else -> NotificationDeviceRemoteResult.Failure
+                }
             } finally {
                 connection.disconnect()
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: IOException) {
-            false
+            NotificationDeviceRemoteResult.Failure
         } catch (_: Exception) {
-            false
+            NotificationDeviceRemoteResult.Failure
         }
     }
 

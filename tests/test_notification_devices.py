@@ -1,10 +1,34 @@
 from database import OwnershipError
 from notifications import DomainEvent, NotificationEventType
+from notifications.repository import NotificationRepository
+from unittest.mock import Mock
 
 from tests.notification_test_support import NotificationTestCase
 
 
 class NotificationDeviceTests(NotificationTestCase):
+    def test_postgresql_registration_locks_device_and_token_in_stable_order(self):
+        db = Mock()
+        db.is_postgresql = True
+        repository = NotificationRepository(db)
+
+        repository._lock_device_registration(
+            device_id="phone",
+            provider="fcm",
+            push_token="token-1",
+        )
+
+        self.assertEqual(2, db.fetch_one.call_count)
+        identities = [call.args[1][0] for call in db.fetch_one.call_args_list]
+        self.assertEqual(sorted(identities), identities)
+        self.assertEqual(
+            {
+                "coachai:notification:device:phone",
+                "coachai:notification:token:fcm:token-1",
+            },
+            set(identities),
+        )
+
     def test_multiple_devices_and_single_primary(self):
         first = self.repo.register_device(
             "u1", device_id="phone", platform="android", provider="fcm",

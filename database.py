@@ -769,6 +769,11 @@ class Database:
         """True when this Database is currently talking to SQLite."""
         return self.engine.dialect.name == "sqlite"
 
+    @property
+    def is_postgresql(self) -> bool:
+        """True when this Database is currently talking to PostgreSQL."""
+        return self.engine.dialect.name == "postgresql"
+
     def _raw_dbapi(self) -> Any:
         """
         Return the underlying DBAPI connection (sqlite3.Connection,

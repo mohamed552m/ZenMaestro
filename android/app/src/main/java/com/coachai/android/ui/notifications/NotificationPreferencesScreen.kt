@@ -153,7 +153,9 @@ private fun Content(
             view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         }
     }
-    val quietEnabled = preferences.quietHoursStart != null && preferences.quietHoursEnd != null
+    val quietStart = preferences.quietHoursStart
+    val quietEnd = preferences.quietHoursEnd
+    val quietEnabled = quietStart != null && quietEnd != null
 
     Column(
         Modifier
@@ -176,7 +178,7 @@ private fun Content(
                 icon = Icons.Outlined.Bedtime,
                 title = "Quiet hours",
                 subtitle = if (quietEnabled) {
-                    quietHoursLabel(preferences.quietHoursStart, preferences.quietHoursEnd, use24Hour)
+                    quietHoursLabel(quietStart, quietEnd, use24Hour)
                 } else {
                     "Pause non-urgent notifications"
                 },
@@ -185,27 +187,27 @@ private fun Content(
                 onChecked = { enabled ->
                     haptic()
                     onQuietHours(
-                        if (enabled) preferences.quietHoursStart ?: "22:00" else null,
-                        if (enabled) preferences.quietHoursEnd ?: "07:00" else null,
+                        if (enabled) quietStart ?: "22:00" else null,
+                        if (enabled) quietEnd ?: "07:00" else null,
                     )
                 },
             )
             if (quietEnabled) {
                 DividerLine()
                 TimeRangeRow(
-                    start = preferences.quietHoursStart ?: "22:00",
-                    end = preferences.quietHoursEnd ?: "07:00",
+                    start = quietStart,
+                    end = quietEnd,
                     enabled = !saving,
                     onStartClick = {
-                        showTimePicker(context, preferences.quietHoursStart, use24Hour) { start ->
+                        showTimePicker(context, quietStart, use24Hour) { start ->
                             haptic()
-                            onQuietHours(start, preferences.quietHoursEnd ?: "07:00")
+                            onQuietHours(start, quietEnd)
                         }
                     },
                     onEndClick = {
-                        showTimePicker(context, preferences.quietHoursEnd, use24Hour) { end ->
+                        showTimePicker(context, quietEnd, use24Hour) { end ->
                             haptic()
-                            onQuietHours(preferences.quietHoursStart ?: "22:00", end)
+                            onQuietHours(quietStart, end)
                         }
                     },
                 )

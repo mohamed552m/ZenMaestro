@@ -4,6 +4,8 @@ import android.content.Context
 import com.coachai.android.BuildConfig
 import com.coachai.android.data.remote.AuthTokenProvider
 import com.coachai.android.data.remote.NotificationDeviceApi
+import com.coachai.android.data.remote.NotificationDeviceRemoteResult
+import com.coachai.android.data.remote.withTokenRefreshRetry
 import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import java.time.ZoneId
@@ -38,38 +40,50 @@ class NotificationDeviceRegistrar(
 
     suspend fun registerPushToken(pushToken: String): Boolean {
         if (pushToken.isBlank()) return false
-        val idToken = try {
-            tokens.firebaseIdToken()
+        val locale = if (Locale.getDefault().language == "ar") "ar" else "en"
+        val idempotencyKey = "device-register-${UUID.randomUUID()}"
+        val result = try {
+            tokens.withTokenRefreshRetry(
+                isUnauthorized = { it == NotificationDeviceRemoteResult.Unauthorized },
+                request = { idToken ->
+                    api.register(
+                        idToken = idToken,
+                        deviceId = deviceId,
+                        pushToken = pushToken,
+                        appVersion = BuildConfig.VERSION_NAME,
+                        locale = locale,
+                        timezone = ZoneId.systemDefault().id,
+                        idempotencyKey = idempotencyKey,
+                    )
+                },
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             return false
-        } ?: return false
-        val locale = if (Locale.getDefault().language == "ar") "ar" else "en"
-        return api.register(
-            idToken = idToken,
-            deviceId = deviceId,
-            pushToken = pushToken,
-            appVersion = BuildConfig.VERSION_NAME,
-            locale = locale,
-            timezone = ZoneId.systemDefault().id,
-            idempotencyKey = "device-register-${UUID.randomUUID()}",
-        )
+        }
+        return result == NotificationDeviceRemoteResult.Success
     }
 
     suspend fun unregister(): Boolean {
-        val idToken = try {
-            tokens.firebaseIdToken()
+        val idempotencyKey = "device-invalidate-${UUID.randomUUID()}"
+        val result = try {
+            tokens.withTokenRefreshRetry(
+                isUnauthorized = { it == NotificationDeviceRemoteResult.Unauthorized },
+                request = { idToken ->
+                    api.invalidate(
+                        idToken = idToken,
+                        deviceId = deviceId,
+                        idempotencyKey = idempotencyKey,
+                    )
+                },
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             return false
-        } ?: return false
-        return api.invalidate(
-            idToken = idToken,
-            deviceId = deviceId,
-            idempotencyKey = "device-invalidate-${UUID.randomUUID()}",
-        )
+        }
+        return result == NotificationDeviceRemoteResult.Success
     }
 
     private suspend fun firebasePushToken(): String {
