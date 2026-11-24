@@ -22,6 +22,7 @@ data class ProfileData(
 sealed interface ProfileRemoteResult<out T> {
     data class Success<T>(val value: T) : ProfileRemoteResult<T>
     data object Unauthorized : ProfileRemoteResult<Nothing>
+    data object Forbidden : ProfileRemoteResult<Nothing>
     data object NetworkError : ProfileRemoteResult<Nothing>
     data object InvalidResponse : ProfileRemoteResult<Nothing>
 }
@@ -108,9 +109,8 @@ class ProfileApi(
                     HttpURLConnection.HTTP_OK -> ProfileRemoteResult.Success(
                         parser(connection.inputStream.readBounded()),
                     )
-                    HttpURLConnection.HTTP_UNAUTHORIZED,
-                    HttpURLConnection.HTTP_FORBIDDEN,
-                    -> ProfileRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> ProfileRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> ProfileRemoteResult.Forbidden
                     in 500..599 -> ProfileRemoteResult.NetworkError
                     else -> ProfileRemoteResult.InvalidResponse
                 }

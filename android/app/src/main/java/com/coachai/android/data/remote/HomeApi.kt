@@ -29,6 +29,7 @@ data class RemoteHomeSnapshot(
 sealed interface HomeRemoteResult {
     data class Success(val snapshot: RemoteHomeSnapshot) : HomeRemoteResult
     data object Unauthorized : HomeRemoteResult
+    data object Forbidden : HomeRemoteResult
     data object NetworkError : HomeRemoteResult
     data object InvalidResponse : HomeRemoteResult
 }
@@ -57,9 +58,8 @@ class HomeApi(
                         HttpURLConnection.HTTP_OK -> HomeRemoteResult.Success(
                             parseSnapshot(connection.inputStream.readBounded()),
                         )
-                        HttpURLConnection.HTTP_UNAUTHORIZED,
-                        HttpURLConnection.HTTP_FORBIDDEN,
-                        -> HomeRemoteResult.Unauthorized
+                        HttpURLConnection.HTTP_UNAUTHORIZED -> HomeRemoteResult.Unauthorized
+                        HttpURLConnection.HTTP_FORBIDDEN -> HomeRemoteResult.Forbidden
                         in 500..599 -> HomeRemoteResult.NetworkError
                         else -> HomeRemoteResult.InvalidResponse
                     }

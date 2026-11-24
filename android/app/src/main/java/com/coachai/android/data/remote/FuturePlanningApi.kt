@@ -65,7 +65,7 @@ data class FuturePreview(
     val outcomes: List<FutureOutcomePreview>,
 )
 
-data class FutureApplyResult(val operationId: String?)
+data class FutureApplyResult(val operationId: String)
 
 interface FuturePlanningRemoteDataSource {
     suspend fun candidates(token: String, start: LocalDate, end: LocalDate): TaskRemoteResult<List<FutureCandidate>>
@@ -112,7 +112,9 @@ class FuturePlanningApi(
     ): TaskRemoteResult<FutureApplyResult> = request(
         "POST", "/v1/future-planning/apply", token, key, request.toJson().toString(),
     ).map { payload ->
-        FutureApplyResult(JSONObject(payload).optionalString("operation_id"))
+        val operationId = JSONObject(payload).getString("operation_id").trim()
+        require(operationId.matches(Regex("^[A-Za-z0-9_-]{1,200}$")))
+        FutureApplyResult(operationId)
     }
 
     override suspend fun undo(
@@ -121,7 +123,7 @@ class FuturePlanningApi(
         require(operationId.matches(Regex("^[A-Za-z0-9_-]{1,200}$")))
         return request(
             "POST", "/v1/scheduling/operations/$operationId/undo", token, key,
-        ).map { _ -> Unit }
+        ).map { }
     }
 
     private fun FuturePlanningRequest.toJson(): JSONObject = JSONObject().apply {
@@ -208,8 +210,8 @@ class FuturePlanningApi(
                 }
                 when (connection.responseCode) {
                     in 200..299 -> TaskRemoteResult.Success(connection.inputStream.readBounded())
-                    HttpURLConnection.HTTP_UNAUTHORIZED,
-                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
                     HttpURLConnection.HTTP_CONFLICT -> TaskRemoteResult.Conflict
                     in 500..599 -> TaskRemoteResult.NetworkError
                     else -> TaskRemoteResult.InvalidResponse
@@ -255,6 +257,7 @@ class FuturePlanningApi(
         is TaskRemoteResult.Success -> runCatching { TaskRemoteResult.Success(transform(value)) }
             .getOrDefault(TaskRemoteResult.InvalidResponse)
         TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized
+        TaskRemoteResult.Forbidden -> TaskRemoteResult.Forbidden
         TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict
         TaskRemoteResult.NetworkError -> TaskRemoteResult.NetworkError
         TaskRemoteResult.InvalidResponse -> TaskRemoteResult.InvalidResponse

@@ -57,6 +57,7 @@ class RealNotificationPreferencesRepositoryTest {
     fun remoteFailuresMapToStableReasons() = runTest {
         val cases = listOf(
             NotificationRemoteResult.Unauthorized to NotificationFailureReason.AUTHENTICATION_REQUIRED,
+            NotificationRemoteResult.Forbidden to NotificationFailureReason.AUTHENTICATION_REQUIRED,
             NotificationRemoteResult.NetworkError to NotificationFailureReason.NETWORK_ERROR,
             NotificationRemoteResult.InvalidResponse to NotificationFailureReason.INVALID_RESPONSE,
         )

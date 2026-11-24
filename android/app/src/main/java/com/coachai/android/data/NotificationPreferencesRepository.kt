@@ -5,6 +5,7 @@ import com.coachai.android.data.remote.AuthTokenProvider
 import com.coachai.android.data.remote.NotificationPreferences
 import com.coachai.android.data.remote.NotificationPreferencesRemoteDataSource
 import com.coachai.android.data.remote.NotificationRemoteResult
+import com.coachai.android.data.remote.withTokenRefreshRetry
 import kotlinx.coroutines.CancellationException
 
 enum class NotificationFailureReason {
@@ -72,20 +73,24 @@ class RealNotificationPreferencesRepository(
     private suspend fun withToken(
         block: suspend (String) -> NotificationRemoteResult,
     ): Result<NotificationPreferences> {
-        val token = try {
-            authTokenProvider.firebaseIdToken()
+        val result = try {
+            authTokenProvider.withTokenRefreshRetry(
+                isUnauthorized = { it == NotificationRemoteResult.Unauthorized },
+                request = block,
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             return failure(NotificationFailureReason.NETWORK_ERROR)
         }
-        if (token.isNullOrBlank()) return failure(NotificationFailureReason.AUTHENTICATION_REQUIRED)
-        return when (val result = block(token)) {
+        if (result == null) return failure(NotificationFailureReason.AUTHENTICATION_REQUIRED)
+        return when (result) {
             is NotificationRemoteResult.Success -> {
                 presentationStore?.save(result.preferences)
                 Result.success(result.preferences)
             }
             NotificationRemoteResult.Unauthorized -> failure(NotificationFailureReason.AUTHENTICATION_REQUIRED)
+            NotificationRemoteResult.Forbidden -> failure(NotificationFailureReason.AUTHENTICATION_REQUIRED)
             NotificationRemoteResult.NetworkError -> failure(NotificationFailureReason.NETWORK_ERROR)
             NotificationRemoteResult.InvalidResponse -> failure(NotificationFailureReason.INVALID_RESPONSE)
         }

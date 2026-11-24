@@ -33,6 +33,7 @@ class RealCalendarRepositoryTest {
 
         val cases = listOf(
             CalendarRemoteResult.Unauthorized to CalendarFailureReason.AUTHENTICATION_REQUIRED,
+            CalendarRemoteResult.Forbidden to CalendarFailureReason.AUTHENTICATION_REQUIRED,
             CalendarRemoteResult.NetworkError to CalendarFailureReason.NETWORK_ERROR,
             CalendarRemoteResult.ConfigurationError to CalendarFailureReason.CONFIGURATION_ERROR,
             CalendarRemoteResult.InvalidResponse to CalendarFailureReason.INVALID_RESPONSE,

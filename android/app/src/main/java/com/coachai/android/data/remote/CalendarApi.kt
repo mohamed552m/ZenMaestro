@@ -28,6 +28,7 @@ data class CalendarRemoteConnection(
 sealed interface CalendarRemoteResult<out T> {
     data class Success<T>(val value: T) : CalendarRemoteResult<T>
     data object Unauthorized : CalendarRemoteResult<Nothing>
+    data object Forbidden : CalendarRemoteResult<Nothing>
     data object NetworkError : CalendarRemoteResult<Nothing>
     data object ConfigurationError : CalendarRemoteResult<Nothing>
     data object InvalidResponse : CalendarRemoteResult<Nothing>
@@ -120,9 +121,8 @@ class CalendarApi(
                 }
                 when (connection.responseCode) {
                     in 200..299 -> CalendarRemoteResult.Success(connection.inputStream.readBounded())
-                    HttpURLConnection.HTTP_UNAUTHORIZED,
-                    HttpURLConnection.HTTP_FORBIDDEN,
-                    -> CalendarRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> CalendarRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> CalendarRemoteResult.Forbidden
                     HttpURLConnection.HTTP_UNAVAILABLE -> {
                         val code = connection.errorStream?.readBounded()?.let {
                             runCatching { JSONObject(it).optString("code") }.getOrNull()
@@ -184,6 +184,7 @@ class CalendarApi(
             CalendarRemoteResult.InvalidResponse
         }
         CalendarRemoteResult.Unauthorized -> CalendarRemoteResult.Unauthorized
+        CalendarRemoteResult.Forbidden -> CalendarRemoteResult.Forbidden
         CalendarRemoteResult.NetworkError -> CalendarRemoteResult.NetworkError
         CalendarRemoteResult.ConfigurationError -> CalendarRemoteResult.ConfigurationError
         CalendarRemoteResult.InvalidResponse -> CalendarRemoteResult.InvalidResponse
@@ -192,6 +193,7 @@ class CalendarApi(
     private fun CalendarRemoteResult<String>.withoutPayload(): CalendarRemoteResult<Unit> = when (this) {
         is CalendarRemoteResult.Success -> CalendarRemoteResult.Success(Unit)
         CalendarRemoteResult.Unauthorized -> CalendarRemoteResult.Unauthorized
+        CalendarRemoteResult.Forbidden -> CalendarRemoteResult.Forbidden
         CalendarRemoteResult.NetworkError -> CalendarRemoteResult.NetworkError
         CalendarRemoteResult.ConfigurationError -> CalendarRemoteResult.ConfigurationError
         CalendarRemoteResult.InvalidResponse -> CalendarRemoteResult.InvalidResponse

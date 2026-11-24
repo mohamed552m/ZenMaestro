@@ -4,6 +4,7 @@ import com.coachai.android.data.remote.AuthTokenProvider
 import com.coachai.android.data.remote.ProfileData
 import com.coachai.android.data.remote.ProfileRemoteDataSource
 import com.coachai.android.data.remote.ProfileRemoteResult
+import com.coachai.android.data.remote.withTokenRefreshRetry
 import kotlinx.coroutines.CancellationException
 
 enum class ProfileFailureReason {
@@ -45,19 +46,23 @@ class RealProfileRepository(
     private suspend fun <T> withToken(
         block: suspend (String) -> ProfileRemoteResult<T>,
     ): Result<T> {
-        val token = try {
-            authTokenProvider.firebaseIdToken()
+        val result = try {
+            authTokenProvider.withTokenRefreshRetry(
+                isUnauthorized = { it == ProfileRemoteResult.Unauthorized },
+                request = block,
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             return failure(ProfileFailureReason.NETWORK_ERROR)
         }
-        if (token.isNullOrBlank()) {
+        if (result == null) {
             return failure(ProfileFailureReason.AUTHENTICATION_REQUIRED)
         }
-        return when (val result = block(token)) {
+        return when (result) {
             is ProfileRemoteResult.Success -> Result.success(result.value)
             ProfileRemoteResult.Unauthorized -> failure(ProfileFailureReason.AUTHENTICATION_REQUIRED)
+            ProfileRemoteResult.Forbidden -> failure(ProfileFailureReason.AUTHENTICATION_REQUIRED)
             ProfileRemoteResult.NetworkError -> failure(ProfileFailureReason.NETWORK_ERROR)
             ProfileRemoteResult.InvalidResponse -> failure(ProfileFailureReason.INVALID_RESPONSE)
         }

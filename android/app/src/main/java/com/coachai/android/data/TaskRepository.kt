@@ -3,6 +3,7 @@ package com.coachai.android.data
 import com.coachai.android.data.remote.AuthTokenProvider
 import com.coachai.android.data.remote.TaskRemoteDataSource
 import com.coachai.android.data.remote.TaskRemoteResult
+import com.coachai.android.data.remote.withTokenRefreshRetry
 import com.coachai.android.domain.HomeTask
 import kotlinx.coroutines.CancellationException
 
@@ -31,11 +32,21 @@ class TaskRepository(private val tokens: AuthTokenProvider, private val api: Tas
     suspend fun transcribe(audio: ByteArray, mimeType: String) = withToken { api.transcribe(it, audio, mimeType) }
 
     private suspend fun <T> withToken(block: suspend (String) -> TaskRemoteResult<T>): Result<T> {
-        val token = try { tokens.firebaseIdToken() } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { return failure(TaskFailureReason.NETWORK_ERROR) }
-        if (token.isNullOrBlank()) return failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
-        return when (val result = block(token)) {
+        val result = try {
+            tokens.withTokenRefreshRetry(
+                isUnauthorized = { it == TaskRemoteResult.Unauthorized },
+                request = block,
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            return failure(TaskFailureReason.NETWORK_ERROR)
+        }
+        if (result == null) return failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
+        return when (result) {
             is TaskRemoteResult.Success -> Result.success(result.value)
             TaskRemoteResult.Unauthorized -> failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
+            TaskRemoteResult.Forbidden -> failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
             TaskRemoteResult.Conflict -> failure(TaskFailureReason.CONFLICT)
             TaskRemoteResult.NetworkError -> failure(TaskFailureReason.NETWORK_ERROR)
             TaskRemoteResult.InvalidResponse -> failure(TaskFailureReason.INVALID_RESPONSE)

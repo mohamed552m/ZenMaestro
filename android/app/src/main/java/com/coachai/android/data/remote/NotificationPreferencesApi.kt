@@ -25,6 +25,7 @@ data class NotificationPreferences(
 sealed interface NotificationRemoteResult {
     data class Success(val preferences: NotificationPreferences) : NotificationRemoteResult
     data object Unauthorized : NotificationRemoteResult
+    data object Forbidden : NotificationRemoteResult
     data object NetworkError : NotificationRemoteResult
     data object InvalidResponse : NotificationRemoteResult
 }
@@ -87,9 +88,8 @@ class NotificationPreferencesApi(
                     HttpURLConnection.HTTP_OK -> NotificationRemoteResult.Success(
                         parse(connection.inputStream.readBounded()),
                     )
-                    HttpURLConnection.HTTP_UNAUTHORIZED,
-                    HttpURLConnection.HTTP_FORBIDDEN,
-                    -> NotificationRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> NotificationRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> NotificationRemoteResult.Forbidden
                     in 500..599 -> NotificationRemoteResult.NetworkError
                     else -> NotificationRemoteResult.InvalidResponse
                 }

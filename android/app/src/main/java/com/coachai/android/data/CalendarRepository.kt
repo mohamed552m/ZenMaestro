@@ -5,6 +5,7 @@ import com.coachai.android.data.remote.CalendarRemoteConnection
 import com.coachai.android.data.remote.CalendarRemoteDataSource
 import com.coachai.android.data.remote.CalendarRemoteItem
 import com.coachai.android.data.remote.CalendarRemoteResult
+import com.coachai.android.data.remote.withTokenRefreshRetry
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 
@@ -37,17 +38,21 @@ class RealCalendarRepository(
     override suspend fun disconnect(key: String) = withToken { api.disconnect(it, key) }
 
     private suspend fun <T> withToken(block: suspend (String) -> CalendarRemoteResult<T>): Result<T> {
-        val token = try {
-            authTokenProvider.firebaseIdToken()
+        val result = try {
+            authTokenProvider.withTokenRefreshRetry(
+                isUnauthorized = { it == CalendarRemoteResult.Unauthorized },
+                request = block,
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             return failure(CalendarFailureReason.NETWORK_ERROR)
         }
-        if (token.isNullOrBlank()) return failure(CalendarFailureReason.AUTHENTICATION_REQUIRED)
-        return when (val result = block(token)) {
+        if (result == null) return failure(CalendarFailureReason.AUTHENTICATION_REQUIRED)
+        return when (result) {
             is CalendarRemoteResult.Success -> Result.success(result.value)
             CalendarRemoteResult.Unauthorized -> failure(CalendarFailureReason.AUTHENTICATION_REQUIRED)
+            CalendarRemoteResult.Forbidden -> failure(CalendarFailureReason.AUTHENTICATION_REQUIRED)
             CalendarRemoteResult.NetworkError -> failure(CalendarFailureReason.NETWORK_ERROR)
             CalendarRemoteResult.ConfigurationError -> failure(CalendarFailureReason.CONFIGURATION_ERROR)
             CalendarRemoteResult.InvalidResponse -> failure(CalendarFailureReason.INVALID_RESPONSE)

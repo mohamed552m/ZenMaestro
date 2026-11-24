@@ -13,6 +13,7 @@ import org.json.JSONObject
 sealed interface AnalyticsRemoteResult {
     data class Success(val payload: String) : AnalyticsRemoteResult
     data object Unauthorized : AnalyticsRemoteResult
+    data object Forbidden : AnalyticsRemoteResult
     data object NetworkError : AnalyticsRemoteResult
     data object InvalidResponse : AnalyticsRemoteResult
 }
@@ -49,9 +50,8 @@ class AnalyticsApi(
                         validateContract(JSONObject(payload), windowDays)
                         AnalyticsRemoteResult.Success(payload)
                     }
-                    HttpURLConnection.HTTP_UNAUTHORIZED,
-                    HttpURLConnection.HTTP_FORBIDDEN,
-                    -> AnalyticsRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> AnalyticsRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> AnalyticsRemoteResult.Forbidden
                     in 500..599 -> AnalyticsRemoteResult.NetworkError
                     else -> AnalyticsRemoteResult.InvalidResponse
                 }

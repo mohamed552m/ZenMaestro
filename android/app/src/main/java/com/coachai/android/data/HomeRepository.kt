@@ -3,6 +3,7 @@ package com.coachai.android.data
 import com.coachai.android.data.remote.AuthTokenProvider
 import com.coachai.android.data.remote.HomeRemoteDataSource
 import com.coachai.android.data.remote.HomeRemoteResult
+import com.coachai.android.data.remote.withTokenRefreshRetry
 import com.coachai.android.domain.HomeSnapshot
 import com.coachai.android.domain.InsightState
 import com.coachai.android.domain.TodayPlanState
@@ -23,16 +24,19 @@ class RealHomeRepository(
         if (apiBaseUrl.isBlank()) {
             return unavailable(date, UnavailableReason.API_NOT_CONFIGURED)
         }
-        val token = try {
-            authTokenProvider.firebaseIdToken()
+        val result = try {
+            authTokenProvider.withTokenRefreshRetry(
+                isUnauthorized = { it == HomeRemoteResult.Unauthorized },
+                request = homeApi::loadToday,
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             return unavailable(date, UnavailableReason.NETWORK_ERROR)
-        }?.takeIf { it.isNotBlank() }
+        }
             ?: return unavailable(date, UnavailableReason.AUTHENTICATION_REQUIRED)
 
-        return when (val result = homeApi.loadToday(token)) {
+        return when (result) {
             is HomeRemoteResult.Success -> {
                 val remote = result.snapshot
                 val planState = when {
@@ -53,6 +57,10 @@ class RealHomeRepository(
                 )
             }
             HomeRemoteResult.Unauthorized -> unavailable(
+                date,
+                UnavailableReason.AUTHENTICATION_REQUIRED,
+            )
+            HomeRemoteResult.Forbidden -> unavailable(
                 date,
                 UnavailableReason.AUTHENTICATION_REQUIRED,
             )

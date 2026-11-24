@@ -40,6 +40,7 @@ class RealProfileRepositoryTest {
     fun remoteFailuresMapToStableReasons() = runTest {
         val cases = listOf(
             ProfileRemoteResult.Unauthorized to ProfileFailureReason.AUTHENTICATION_REQUIRED,
+            ProfileRemoteResult.Forbidden to ProfileFailureReason.AUTHENTICATION_REQUIRED,
             ProfileRemoteResult.NetworkError to ProfileFailureReason.NETWORK_ERROR,
             ProfileRemoteResult.InvalidResponse to ProfileFailureReason.INVALID_RESPONSE,
         )
@@ -125,6 +126,7 @@ class RealProfileRepositoryTest {
                     result.value.timezone,
                 )
                 ProfileRemoteResult.Unauthorized -> ProfileRemoteResult.Unauthorized
+                ProfileRemoteResult.Forbidden -> ProfileRemoteResult.Forbidden
                 ProfileRemoteResult.NetworkError -> ProfileRemoteResult.NetworkError
                 ProfileRemoteResult.InvalidResponse -> ProfileRemoteResult.InvalidResponse
             }

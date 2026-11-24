@@ -20,6 +20,7 @@ data class CoachRecommendation(
 sealed interface CoachRemoteResult<out T> {
     data class Success<T>(val value: T) : CoachRemoteResult<T>
     data object Unauthorized : CoachRemoteResult<Nothing>
+    data object Forbidden : CoachRemoteResult<Nothing>
     data object NetworkError : CoachRemoteResult<Nothing>
     data object ConfigurationError : CoachRemoteResult<Nothing>
     data object InvalidResponse : CoachRemoteResult<Nothing>
@@ -54,7 +55,9 @@ class CoachApi(
                 try {
                     connection.requestMethod = method
                     connection.connectTimeout = 8_000
-                    connection.readTimeout = 35_000
+                    // AI requests can require multiple grounded tool calls. Keep the
+                    // client deadline above the backend's bounded provider fallback.
+                    connection.readTimeout = 90_000
                     connection.instanceFollowRedirects = false
                     connection.setRequestProperty("Accept", "application/json")
                     connection.setRequestProperty("Authorization", "Bearer $token")
@@ -65,7 +68,8 @@ class CoachApi(
                     }
                     when (connection.responseCode) {
                         HttpURLConnection.HTTP_OK -> CoachRemoteResult.Success(connection.inputStream.readBounded())
-                        HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN -> CoachRemoteResult.Unauthorized
+                        HttpURLConnection.HTTP_UNAUTHORIZED -> CoachRemoteResult.Unauthorized
+                        HttpURLConnection.HTTP_FORBIDDEN -> CoachRemoteResult.Forbidden
                         HttpURLConnection.HTTP_UNAVAILABLE -> CoachRemoteResult.ConfigurationError
                         in 500..599 -> CoachRemoteResult.NetworkError
                         else -> CoachRemoteResult.InvalidResponse
@@ -107,6 +111,7 @@ class CoachApi(
     private fun <T, R> CoachRemoteResult<T>.map(transform: (T) -> R): CoachRemoteResult<R> = when (this) {
         is CoachRemoteResult.Success -> runCatching { CoachRemoteResult.Success(transform(value)) }.getOrDefault(CoachRemoteResult.InvalidResponse)
         CoachRemoteResult.Unauthorized -> CoachRemoteResult.Unauthorized
+        CoachRemoteResult.Forbidden -> CoachRemoteResult.Forbidden
         CoachRemoteResult.NetworkError -> CoachRemoteResult.NetworkError
         CoachRemoteResult.ConfigurationError -> CoachRemoteResult.ConfigurationError
         CoachRemoteResult.InvalidResponse -> CoachRemoteResult.InvalidResponse

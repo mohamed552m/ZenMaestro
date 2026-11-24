@@ -65,6 +65,7 @@ data class ScheduleMoveResult(
 sealed interface TaskRemoteResult<out T> {
     data class Success<T>(val value: T) : TaskRemoteResult<T>
     data object Unauthorized : TaskRemoteResult<Nothing>
+    data object Forbidden : TaskRemoteResult<Nothing>
     data object Conflict : TaskRemoteResult<Nothing>
     data object NetworkError : TaskRemoteResult<Nothing>
     data object InvalidResponse : TaskRemoteResult<Nothing>
@@ -348,8 +349,8 @@ class TaskApi(
                             .trim()
                             .also { require(it.isNotEmpty() && it.length <= 20_000) },
                     )
-                    HttpURLConnection.HTTP_UNAUTHORIZED,
-                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
                     in 500..599 -> TaskRemoteResult.NetworkError
                     else -> TaskRemoteResult.InvalidResponse
                 }
@@ -382,7 +383,8 @@ class TaskApi(
                 if (bytes != null) { connection.doOutput = true; connection.setRequestProperty("Content-Type", "application/json"); connection.outputStream.use { it.write(bytes) } }
                 when (connection.responseCode) {
                     in 200..299 -> TaskRemoteResult.Success(connection.inputStream.readBounded())
-                    HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
+                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
                     HttpURLConnection.HTTP_CONFLICT -> TaskRemoteResult.Conflict
                     in 500..599 -> TaskRemoteResult.NetworkError
                     else -> TaskRemoteResult.InvalidResponse
@@ -424,11 +426,13 @@ class TaskApi(
 
     private fun <T, R> TaskRemoteResult<T>.map(transform: (T) -> R): TaskRemoteResult<R> = when (this) {
         is TaskRemoteResult.Success -> runCatching { TaskRemoteResult.Success(transform(value)) }.getOrDefault(TaskRemoteResult.InvalidResponse)
-        TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized; TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict
+        TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized; TaskRemoteResult.Forbidden -> TaskRemoteResult.Forbidden
+        TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict
         TaskRemoteResult.NetworkError -> TaskRemoteResult.NetworkError; TaskRemoteResult.InvalidResponse -> TaskRemoteResult.InvalidResponse
     }
     private fun TaskRemoteResult<String>.withoutPayload(): TaskRemoteResult<Unit> = when (this) {
         is TaskRemoteResult.Success -> TaskRemoteResult.Success(Unit); TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized
+        TaskRemoteResult.Forbidden -> TaskRemoteResult.Forbidden
         TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict; TaskRemoteResult.NetworkError -> TaskRemoteResult.NetworkError
         TaskRemoteResult.InvalidResponse -> TaskRemoteResult.InvalidResponse
     }

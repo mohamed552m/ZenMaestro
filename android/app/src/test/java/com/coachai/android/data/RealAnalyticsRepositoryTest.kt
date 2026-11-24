@@ -49,6 +49,7 @@ class RealAnalyticsRepositoryTest {
     fun remoteFailuresMapToStableUiReasons() = runTest {
         val cases = listOf(
             AnalyticsRemoteResult.Unauthorized to AnalyticsFailureReason.AUTHENTICATION_REQUIRED,
+            AnalyticsRemoteResult.Forbidden to AnalyticsFailureReason.AUTHENTICATION_REQUIRED,
             AnalyticsRemoteResult.NetworkError to AnalyticsFailureReason.NETWORK_ERROR,
             AnalyticsRemoteResult.InvalidResponse to AnalyticsFailureReason.INVALID_RESPONSE,
         )

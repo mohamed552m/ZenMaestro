@@ -120,6 +120,7 @@ class RealHomeRepositoryTest {
     fun remoteFailuresMapToSafeUiStates() = runTest {
         val cases = listOf(
             HomeRemoteResult.Unauthorized to UnavailableReason.AUTHENTICATION_REQUIRED,
+            HomeRemoteResult.Forbidden to UnavailableReason.AUTHENTICATION_REQUIRED,
             HomeRemoteResult.NetworkError to UnavailableReason.NETWORK_ERROR,
             HomeRemoteResult.InvalidResponse to UnavailableReason.INVALID_RESPONSE,
         )
@@ -137,6 +138,52 @@ class RealHomeRepositoryTest {
         }
     }
 
+    @Test
+    fun unauthorizedResponseRefreshesTokenAndRetriesOnce() = runTest {
+        val provider = RefreshingTokenProvider("stale-token", "fresh-token")
+        val requestedTokens = mutableListOf<String>()
+        val success = HomeRemoteResult.Success(
+            RemoteHomeSnapshot(requestedDate, "Mona", null),
+        )
+        val repository = RealHomeRepository(
+            apiBaseUrl = "https://api.example.test",
+            authTokenProvider = provider,
+            homeApi = HomeRemoteDataSource { token ->
+                requestedTokens += token
+                if (token == "stale-token") HomeRemoteResult.Unauthorized else success
+            },
+        )
+
+        val result = repository.load(requestedDate)
+
+        assertEquals(TodayPlanState.NoPlan, result.planState)
+        assertEquals(listOf("stale-token", "fresh-token"), requestedTokens)
+        assertEquals(1, provider.refreshCalls)
+    }
+
+    @Test
+    fun forbiddenResponseDoesNotRefreshOrRetry() = runTest {
+        val provider = RefreshingTokenProvider("token", "unused-token")
+        var remoteCalls = 0
+        val repository = RealHomeRepository(
+            apiBaseUrl = "https://api.example.test",
+            authTokenProvider = provider,
+            homeApi = HomeRemoteDataSource {
+                remoteCalls += 1
+                HomeRemoteResult.Forbidden
+            },
+        )
+
+        val result = repository.load(requestedDate)
+
+        assertEquals(
+            UnavailableReason.AUTHENTICATION_REQUIRED,
+            (result.planState as TodayPlanState.Unavailable).reason,
+        )
+        assertEquals(1, remoteCalls)
+        assertEquals(0, provider.refreshCalls)
+    }
+
     private fun repository(
         baseUrl: String,
         token: String?,
@@ -150,5 +197,20 @@ class RealHomeRepositoryTest {
             result
         },
     )
+
+    private class RefreshingTokenProvider(
+        private val initialToken: String,
+        private val refreshedToken: String,
+    ) : AuthTokenProvider {
+        var refreshCalls: Int = 0
+            private set
+
+        override suspend fun firebaseIdToken(): String = initialToken
+
+        override suspend fun refreshFirebaseIdToken(rejectedToken: String): String {
+            refreshCalls += 1
+            return refreshedToken
+        }
+    }
 }
 
