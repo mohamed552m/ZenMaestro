@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+import os
 import sys
 import tempfile
 from types import ModuleType
@@ -9,11 +10,12 @@ import unittest
 from unittest.mock import patch
 from sqlalchemy.exc import IntegrityError
 
-from backend_errors import AuthenticationRequired
+from backend_errors import AuthenticationRequired, ConfigurationError, ExternalProviderFailure
 from database import Database
 from identity import (
     AuthenticatedPrincipal,
     FirebaseTokenVerifier,
+    _service_account_from_env,
     get_or_create_user_from_principal,
 )
 
@@ -56,6 +58,44 @@ class FirebaseAuthenticationTests(unittest.TestCase):
             self.verifier().verify("")
         with self.assertRaises(AuthenticationRequired):
             self.verifier(raises=ValueError("provider detail")).verify("bad")
+
+    def test_certificate_fetch_failure_is_retried_then_reported_as_provider_failure(self):
+        from firebase_admin._token_gen import CertificateFetchError
+
+        verify = unittest.mock.Mock(
+            side_effect=CertificateFetchError("unavailable", RuntimeError())
+        )
+        verifier = FirebaseTokenVerifier(
+            project_id=self.project_id,
+            verify_callable=verify,
+        )
+        with patch("identity.time.sleep"), self.assertRaises(ExternalProviderFailure):
+            verifier.verify("signed-token")
+        self.assertEqual(2, verify.call_count)
+
+    def test_certificate_fetch_retry_can_recover(self):
+        from firebase_admin._token_gen import CertificateFetchError
+
+        verify = unittest.mock.Mock(
+            side_effect=[
+                CertificateFetchError("unavailable", RuntimeError()),
+                self.claims(),
+            ]
+        )
+        verifier = FirebaseTokenVerifier(
+            project_id=self.project_id,
+            verify_callable=verify,
+        )
+        with patch("identity.time.sleep"):
+            principal = verifier.verify("signed-token")
+        self.assertEqual("firebase-u1", principal.user_id)
+        self.assertEqual(2, verify.call_count)
+
+    def test_service_account_environment_must_match_project(self):
+        value = '{"type":"service_account","project_id":"wrong-project"}'
+        with patch.dict(os.environ, {"FIREBASE_SERVICE_ACCOUNT_JSON": value}):
+            with self.assertRaises(ConfigurationError):
+                _service_account_from_env(self.project_id)
 
     def test_expired_wrong_audience_wrong_issuer_and_disabled_are_rejected(self):
         invalid = (

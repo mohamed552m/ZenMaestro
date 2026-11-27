@@ -8,14 +8,62 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import base64
+import json
 import logging
+import os
+import time
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Protocol
 
-from backend_errors import AuthenticationRequired, ConfigurationError
+from backend_errors import AuthenticationRequired, ConfigurationError, ExternalProviderFailure
 
 
 logger = logging.getLogger("coachai.auth")
+
+
+def _service_account_from_env(project_id: str) -> Mapping[str, Any] | None:
+    """Load an optional Railway-friendly service account without logging it."""
+    raw = (os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON") or "").strip()
+    if not raw:
+        return None
+    try:
+        if not raw.startswith("{"):
+            raw = base64.b64decode(raw, validate=True).decode("utf-8")
+        value = json.loads(raw)
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise ConfigurationError(
+            "FIREBASE_SERVICE_ACCOUNT_JSON must contain service-account JSON."
+        ) from exc
+    if not isinstance(value, dict) or value.get("type") != "service_account":
+        raise ConfigurationError(
+            "FIREBASE_SERVICE_ACCOUNT_JSON is not a service account."
+        )
+    credential_project = str(value.get("project_id") or "").strip()
+    if credential_project and credential_project != project_id:
+        raise ConfigurationError(
+            "The Firebase service account belongs to a different project."
+        )
+    return value
+
+
+def _is_verification_infrastructure_error(exc: BaseException) -> bool:
+    """Separate provider/network failures from invalid user credentials."""
+    module = type(exc).__module__
+    name = type(exc).__name__
+    if module.startswith("firebase_admin") and name in {
+        "CertificateFetchError",
+        "UnavailableError",
+        "UnknownError",
+    }:
+        return True
+    if module.startswith("google.auth") and name in {
+        "DefaultCredentialsError",
+        "RefreshError",
+        "TransportError",
+    }:
+        return True
+    return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,9 +118,18 @@ class FirebaseTokenVerifier:
         except ValueError:
             try:
                 if self.check_revoked:
-                    firebase_app = firebase_admin.initialize_app(
-                        options={"projectId": self.project_id}
-                    )
+                    service_account = _service_account_from_env(self.project_id)
+                    if service_account is None:
+                        firebase_app = firebase_admin.initialize_app(
+                            options={"projectId": self.project_id}
+                        )
+                    else:
+                        from firebase_admin import credentials
+
+                        firebase_app = firebase_admin.initialize_app(
+                            credentials.Certificate(dict(service_account)),
+                            options={"projectId": self.project_id},
+                        )
                 else:
                     # Local signature-only verification deliberately avoids
                     # Application Default Credentials. Public Firebase signing
@@ -103,21 +160,37 @@ class FirebaseTokenVerifier:
     def verify(self, token: str) -> AuthenticatedPrincipal:
         if not token or not token.strip():
             raise AuthenticationRequired("A Firebase ID token is required.")
-        try:
-            claims = dict(
-                self._verifier()(
-                    token.strip(),
-                    check_revoked=self.check_revoked,
-                    clock_skew_seconds=self.clock_skew_seconds,
+        verifier = self._verifier()
+        claims: dict[str, Any] | None = None
+        for attempt in range(2):
+            try:
+                claims = dict(
+                    verifier(
+                        token.strip(),
+                        check_revoked=self.check_revoked,
+                        clock_skew_seconds=self.clock_skew_seconds,
+                    )
                 )
+                break
+            except Exception as exc:
+                infrastructure_failure = _is_verification_infrastructure_error(exc)
+                logger.warning(
+                    "Firebase token verification failed (%s, infrastructure=%s).",
+                    type(exc).__name__,
+                    infrastructure_failure,
+                )
+                if infrastructure_failure and attempt == 0:
+                    time.sleep(0.2)
+                    continue
+                if infrastructure_failure:
+                    raise ExternalProviderFailure(
+                        "Firebase authentication is temporarily unavailable."
+                    ) from exc
+                raise AuthenticationRequired("The Firebase ID token is invalid.") from exc
+        if claims is None:  # Defensive; the loop either succeeds or raises.
+            raise ExternalProviderFailure(
+                "Firebase authentication is temporarily unavailable."
             )
-        except Exception as exc:
-            # Provider exception details are deliberately not exposed.
-            logger.warning(
-                "Firebase token verification failed (%s).",
-                type(exc).__name__,
-            )
-            raise AuthenticationRequired("The Firebase ID token is invalid.") from exc
 
         subject = str(claims.get("uid") or claims.get("sub") or "").strip()
         audience = claims.get("aud")
