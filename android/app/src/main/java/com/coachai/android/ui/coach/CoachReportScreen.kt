@@ -152,9 +152,12 @@ private fun CoachErrorCard(reason: com.coachai.android.data.CoachFailureReason, 
         Text(
             when (reason) {
                 com.coachai.android.data.CoachFailureReason.AUTHENTICATION_REQUIRED -> "Your session expired. Log in again to generate the report."
-                com.coachai.android.data.CoachFailureReason.NETWORK_ERROR -> "You're offline. Reconnect and try again."
-                com.coachai.android.data.CoachFailureReason.CONFIGURATION_ERROR -> "Your coach isn't available yet. Try again later."
+                com.coachai.android.data.CoachFailureReason.NETWORK_ERROR -> "Can't reach the server. Check your connection and try again."
+                com.coachai.android.data.CoachFailureReason.CONFIGURATION_ERROR -> "The AI coach isn't configured on the server yet."
                 com.coachai.android.data.CoachFailureReason.INVALID_RESPONSE -> "That report couldn't be displayed safely."
+                com.coachai.android.data.CoachFailureReason.AI_UNAVAILABLE -> "The AI coach couldn't answer right now. Try again in a moment."
+                com.coachai.android.data.CoachFailureReason.NO_SCHEDULE -> "Add a few tasks to today's plan first, then generate the report."
+                com.coachai.android.data.CoachFailureReason.TIMEOUT -> "The AI coach took too long to answer. Try again."
             },
             color = TextMuted,
             modifier = Modifier.padding(vertical = 10.dp),

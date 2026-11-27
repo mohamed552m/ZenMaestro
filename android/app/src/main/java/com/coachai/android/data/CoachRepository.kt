@@ -7,7 +7,15 @@ import com.coachai.android.data.remote.CoachRemoteResult
 import com.coachai.android.data.remote.withTokenRefreshRetry
 import kotlinx.coroutines.CancellationException
 
-enum class CoachFailureReason { AUTHENTICATION_REQUIRED, NETWORK_ERROR, CONFIGURATION_ERROR, INVALID_RESPONSE }
+enum class CoachFailureReason {
+    AUTHENTICATION_REQUIRED,
+    NETWORK_ERROR,
+    CONFIGURATION_ERROR,
+    INVALID_RESPONSE,
+    AI_UNAVAILABLE,
+    NO_SCHEDULE,
+    TIMEOUT,
+}
 class CoachRepositoryException(val reason: CoachFailureReason) : Exception(reason.name)
 
 interface CoachRepository {
@@ -41,6 +49,9 @@ class RealCoachRepository(
             CoachRemoteResult.NetworkError -> failure(CoachFailureReason.NETWORK_ERROR)
             CoachRemoteResult.ConfigurationError -> failure(CoachFailureReason.CONFIGURATION_ERROR)
             CoachRemoteResult.InvalidResponse -> failure(CoachFailureReason.INVALID_RESPONSE)
+            CoachRemoteResult.ProviderUnavailable -> failure(CoachFailureReason.AI_UNAVAILABLE)
+            CoachRemoteResult.NoSchedule -> failure(CoachFailureReason.NO_SCHEDULE)
+            CoachRemoteResult.Timeout -> failure(CoachFailureReason.TIMEOUT)
         }
     }
 

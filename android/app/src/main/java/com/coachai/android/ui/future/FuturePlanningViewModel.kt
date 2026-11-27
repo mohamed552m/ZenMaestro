@@ -227,6 +227,10 @@ class FuturePlanningViewModel(
         TaskFailureReason.CONFLICT -> "The schedule changed. Refresh the plan and preview it again."
         TaskFailureReason.NETWORK_ERROR -> "You're offline. Reconnect and try saving again."
         TaskFailureReason.INVALID_RESPONSE -> "Some planning details are invalid. Check the dates and deadlines."
+        TaskFailureReason.TIMEOUT -> "The server is taking too long. Try again in a moment."
+        TaskFailureReason.RATE_LIMITED -> "Too many requests. Wait a minute and try again."
+        TaskFailureReason.SERVICE_UNAVAILABLE -> "The planning service is temporarily unavailable. Try again shortly."
+        TaskFailureReason.SERVER_ERROR -> "Something went wrong on the server. Try again."
         null -> "Future Planning could not complete this request."
     }
 

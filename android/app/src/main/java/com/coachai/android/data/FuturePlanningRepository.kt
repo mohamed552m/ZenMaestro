@@ -35,13 +35,6 @@ class FuturePlanningRepository(
         if (result == null) {
             return Result.failure(TaskRepositoryException(TaskFailureReason.AUTHENTICATION_REQUIRED))
         }
-        return when (result) {
-            is TaskRemoteResult.Success -> Result.success(result.value)
-            TaskRemoteResult.Unauthorized -> Result.failure(TaskRepositoryException(TaskFailureReason.AUTHENTICATION_REQUIRED))
-            TaskRemoteResult.Forbidden -> Result.failure(TaskRepositoryException(TaskFailureReason.AUTHENTICATION_REQUIRED))
-            TaskRemoteResult.Conflict -> Result.failure(TaskRepositoryException(TaskFailureReason.CONFLICT))
-            TaskRemoteResult.NetworkError -> Result.failure(TaskRepositoryException(TaskFailureReason.NETWORK_ERROR))
-            TaskRemoteResult.InvalidResponse -> Result.failure(TaskRepositoryException(TaskFailureReason.INVALID_RESPONSE))
-        }
+        return result.toTaskResult()
     }
 }

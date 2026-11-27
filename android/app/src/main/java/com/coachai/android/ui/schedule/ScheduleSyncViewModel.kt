@@ -43,8 +43,12 @@ class ScheduleSyncViewModel(private val repository: TaskRepository) : ViewModel(
         fun message(error: Throwable): String = when ((error as? TaskRepositoryException)?.reason) {
             TaskFailureReason.AUTHENTICATION_REQUIRED -> "Your session expired. Log in again before saving this change."
             TaskFailureReason.CONFLICT -> "This task changed elsewhere. Refresh the plan and try again."
-            TaskFailureReason.NETWORK_ERROR -> "You're offline. Reconnect and try saving again."
-            else -> "This task couldn't be saved. Check the details and try again."
+            TaskFailureReason.NETWORK_ERROR -> "Can't reach the server. Check your connection and try again."
+            TaskFailureReason.TIMEOUT -> "The server is taking too long. Refresh first — your change may already be saved."
+            TaskFailureReason.RATE_LIMITED -> "Too many requests. Wait a minute and try again."
+            TaskFailureReason.SERVICE_UNAVAILABLE -> "The service is temporarily unavailable. Try again shortly."
+            TaskFailureReason.SERVER_ERROR -> "Something went wrong on the server. Try again."
+            TaskFailureReason.INVALID_RESPONSE, null -> "This task couldn't be saved. Check the details and try again."
         }
     }
 

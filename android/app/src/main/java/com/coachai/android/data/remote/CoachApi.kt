@@ -24,6 +24,9 @@ sealed interface CoachRemoteResult<out T> {
     data object NetworkError : CoachRemoteResult<Nothing>
     data object ConfigurationError : CoachRemoteResult<Nothing>
     data object InvalidResponse : CoachRemoteResult<Nothing>
+    data object ProviderUnavailable : CoachRemoteResult<Nothing>
+    data object NoSchedule : CoachRemoteResult<Nothing>
+    data object Timeout : CoachRemoteResult<Nothing>
 }
 
 interface CoachRemoteDataSource {
@@ -54,7 +57,7 @@ class CoachApi(
                 val connection = endpoint(path).toURL().openConnection() as HttpURLConnection
                 try {
                     connection.requestMethod = method
-                    connection.connectTimeout = 8_000
+                    connection.connectTimeout = 15_000
                     // AI requests can require multiple grounded tool calls. Keep the
                     // client deadline above the backend's bounded provider fallback.
                     connection.readTimeout = 90_000
@@ -71,12 +74,18 @@ class CoachApi(
                         HttpURLConnection.HTTP_UNAUTHORIZED -> CoachRemoteResult.Unauthorized
                         HttpURLConnection.HTTP_FORBIDDEN -> CoachRemoteResult.Forbidden
                         HttpURLConnection.HTTP_UNAVAILABLE -> CoachRemoteResult.ConfigurationError
-                        in 500..599 -> CoachRemoteResult.NetworkError
+                        HttpURLConnection.HTTP_NOT_FOUND -> CoachRemoteResult.NoSchedule
+                        429,
+                        HttpURLConnection.HTTP_BAD_GATEWAY,
+                        HttpURLConnection.HTTP_GATEWAY_TIMEOUT -> CoachRemoteResult.ProviderUnavailable
+                        in 500..599 -> CoachRemoteResult.ProviderUnavailable
                         else -> CoachRemoteResult.InvalidResponse
                     }
                 } finally { connection.disconnect() }
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (_: java.net.SocketTimeoutException) {
+                CoachRemoteResult.Timeout
             } catch (_: IOException) {
                 CoachRemoteResult.NetworkError
             } catch (_: Exception) {
@@ -115,6 +124,9 @@ class CoachApi(
         CoachRemoteResult.NetworkError -> CoachRemoteResult.NetworkError
         CoachRemoteResult.ConfigurationError -> CoachRemoteResult.ConfigurationError
         CoachRemoteResult.InvalidResponse -> CoachRemoteResult.InvalidResponse
+        CoachRemoteResult.ProviderUnavailable -> CoachRemoteResult.ProviderUnavailable
+        CoachRemoteResult.NoSchedule -> CoachRemoteResult.NoSchedule
+        CoachRemoteResult.Timeout -> CoachRemoteResult.Timeout
     }
 
     private fun java.io.InputStream.readBounded(): String = use { input ->

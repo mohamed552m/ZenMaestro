@@ -41,7 +41,9 @@ class AskCoachViewModel(private val repository: CoachRepository) : ViewModel() {
                     val text = when (reason) {
                         CoachFailureReason.AUTHENTICATION_REQUIRED -> "Your session expired. Log in again to continue with the coach."
                         CoachFailureReason.NETWORK_ERROR -> "I couldn't reach the coach. Check the connection and try again."
-                        CoachFailureReason.CONFIGURATION_ERROR -> "Your coach isn't available yet. Try again later."
+                        CoachFailureReason.CONFIGURATION_ERROR -> "The AI coach isn't configured on the server yet."
+                        CoachFailureReason.AI_UNAVAILABLE -> "The coach couldn't answer right now. Try again in a moment."
+                        CoachFailureReason.TIMEOUT -> "The coach took too long to answer. Try a shorter question."
                         else -> "The coach returned an unexpected response. Please try again."
                     }
                     _uiState.value = _uiState.value.copy(

@@ -197,8 +197,8 @@ class FuturePlanningApi(
             val connection = endpoint(path).toURL().openConnection() as HttpURLConnection
             try {
                 connection.requestMethod = method
-                connection.connectTimeout = 10_000
-                connection.readTimeout = 45_000
+                connection.connectTimeout = 15_000
+                connection.readTimeout = 60_000
                 connection.instanceFollowRedirects = false
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("Authorization", "Bearer $token")
@@ -208,23 +208,17 @@ class FuturePlanningApi(
                     connection.setRequestProperty("Content-Type", "application/json")
                     connection.outputStream.use { it.write(bytes) }
                 }
-                when (connection.responseCode) {
+                when (val code = connection.responseCode) {
                     in 200..299 -> TaskRemoteResult.Success(connection.inputStream.readBounded())
-                    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
-                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
-                    HttpURLConnection.HTTP_CONFLICT -> TaskRemoteResult.Conflict
-                    in 500..599 -> TaskRemoteResult.NetworkError
-                    else -> TaskRemoteResult.InvalidResponse
+                    else -> taskResultForStatus(code)
                 }
             } finally {
                 connection.disconnect()
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: IOException) {
-            TaskRemoteResult.NetworkError
-        } catch (_: Exception) {
-            TaskRemoteResult.InvalidResponse
+        } catch (error: Exception) {
+            taskResultForException(error)
         }
     }
 
@@ -253,13 +247,5 @@ class FuturePlanningApi(
         output.toString(Charsets.UTF_8.name())
     }
 
-    private fun <T, R> TaskRemoteResult<T>.map(transform: (T) -> R): TaskRemoteResult<R> = when (this) {
-        is TaskRemoteResult.Success -> runCatching { TaskRemoteResult.Success(transform(value)) }
-            .getOrDefault(TaskRemoteResult.InvalidResponse)
-        TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized
-        TaskRemoteResult.Forbidden -> TaskRemoteResult.Forbidden
-        TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict
-        TaskRemoteResult.NetworkError -> TaskRemoteResult.NetworkError
-        TaskRemoteResult.InvalidResponse -> TaskRemoteResult.InvalidResponse
-    }
+    private fun <T, R> TaskRemoteResult<T>.map(transform: (T) -> R): TaskRemoteResult<R> = mapTaskResult(transform)
 }

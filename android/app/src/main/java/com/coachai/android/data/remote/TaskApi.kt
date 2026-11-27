@@ -69,6 +69,35 @@ sealed interface TaskRemoteResult<out T> {
     data object Conflict : TaskRemoteResult<Nothing>
     data object NetworkError : TaskRemoteResult<Nothing>
     data object InvalidResponse : TaskRemoteResult<Nothing>
+    data object Timeout : TaskRemoteResult<Nothing>
+    data object RateLimited : TaskRemoteResult<Nothing>
+    data object ServiceUnavailable : TaskRemoteResult<Nothing>
+    data object ServerError : TaskRemoteResult<Nothing>
+}
+
+internal fun <T> taskResultForStatus(code: Int): TaskRemoteResult<T> = when (code) {
+    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
+    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
+    HttpURLConnection.HTTP_CONFLICT -> TaskRemoteResult.Conflict
+    429 -> TaskRemoteResult.RateLimited
+    HttpURLConnection.HTTP_BAD_GATEWAY,
+    HttpURLConnection.HTTP_UNAVAILABLE,
+    HttpURLConnection.HTTP_GATEWAY_TIMEOUT -> TaskRemoteResult.ServiceUnavailable
+    in 500..599 -> TaskRemoteResult.ServerError
+    else -> TaskRemoteResult.InvalidResponse
+}
+
+internal fun <T> taskResultForException(error: Exception): TaskRemoteResult<T> = when (error) {
+    is java.net.SocketTimeoutException -> TaskRemoteResult.Timeout
+    is IOException -> TaskRemoteResult.NetworkError
+    else -> TaskRemoteResult.InvalidResponse
+}
+
+@Suppress("UNCHECKED_CAST")
+internal fun <T, R> TaskRemoteResult<T>.mapTaskResult(transform: (T) -> R): TaskRemoteResult<R> = when (this) {
+    is TaskRemoteResult.Success -> runCatching { TaskRemoteResult.Success(transform(value)) }
+        .getOrDefault(TaskRemoteResult.InvalidResponse)
+    else -> this as TaskRemoteResult<R>
 }
 
 interface TaskRemoteDataSource {
@@ -218,6 +247,7 @@ class TaskApi(
         return request(
             "POST", "/v1/planning/draft", token, "draft-${java.util.UUID.randomUUID()}",
             JSONObject().put("raw_input", clean).toString(),
+            readTimeoutMillis = AI_READ_TIMEOUT_MS,
         ).map { payload ->
             val root = JSONObject(payload)
             val tasks = root.getJSONArray("tasks")
@@ -275,7 +305,7 @@ class TaskApi(
             .put("raw_input", draft.rawInput)
             .put("draft", draftJson)
             .toString()
-        return request("POST", "/v1/planning/apply", token, key, body).map { payload ->
+        return request("POST", "/v1/planning/apply", token, key, body, readTimeoutMillis = WRITE_READ_TIMEOUT_MS).map { payload ->
             val root = JSONObject(payload)
             val saved = root.getJSONArray("tasks")
             PlanningApplyResult(
@@ -333,8 +363,8 @@ class TaskApi(
             val connection = endpoint("/v1/coach/voice/transcribe").toURL().openConnection() as HttpURLConnection
             try {
                 connection.requestMethod = "POST"
-                connection.connectTimeout = 10_000
-                connection.readTimeout = 90_000
+                connection.connectTimeout = CONNECT_TIMEOUT_MS
+                connection.readTimeout = AI_READ_TIMEOUT_MS
                 connection.instanceFollowRedirects = false
                 connection.doOutput = true
                 connection.setFixedLengthStreamingMode(audio.size)
@@ -349,25 +379,25 @@ class TaskApi(
                             .trim()
                             .also { require(it.isNotEmpty() && it.length <= 20_000) },
                     )
-                    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
-                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
-                    in 500..599 -> TaskRemoteResult.NetworkError
-                    else -> TaskRemoteResult.InvalidResponse
+                    else -> taskResultForStatus(connection.responseCode)
                 }
             } finally {
                 connection.disconnect()
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: IOException) {
-            TaskRemoteResult.NetworkError
-        } catch (_: Exception) {
-            TaskRemoteResult.InvalidResponse
+        } catch (error: Exception) {
+            taskResultForException(error)
         }
     }
 
     private suspend fun request(
-        method: String, path: String, token: String, key: String, body: String? = null,
+        method: String,
+        path: String,
+        token: String,
+        key: String,
+        body: String? = null,
+        readTimeoutMillis: Int = DEFAULT_READ_TIMEOUT_MS,
     ): TaskRemoteResult<String> = withContext(Dispatchers.IO) {
         try {
             require(token.isNotBlank() && key.isNotBlank() && key.length <= 200)
@@ -375,24 +405,21 @@ class TaskApi(
             require(bytes == null || bytes.size <= 64 * 1_024)
             val connection = endpoint(path).toURL().openConnection() as HttpURLConnection
             try {
-                connection.requestMethod = method; connection.connectTimeout = 10_000; connection.readTimeout = 25_000
+                connection.requestMethod = method
+                connection.connectTimeout = CONNECT_TIMEOUT_MS
+                connection.readTimeout = readTimeoutMillis
                 connection.instanceFollowRedirects = false
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("Authorization", "Bearer $token")
                 connection.setRequestProperty("Idempotency-Key", key)
                 if (bytes != null) { connection.doOutput = true; connection.setRequestProperty("Content-Type", "application/json"); connection.outputStream.use { it.write(bytes) } }
-                when (connection.responseCode) {
+                when (val code = connection.responseCode) {
                     in 200..299 -> TaskRemoteResult.Success(connection.inputStream.readBounded())
-                    HttpURLConnection.HTTP_UNAUTHORIZED -> TaskRemoteResult.Unauthorized
-                    HttpURLConnection.HTTP_FORBIDDEN -> TaskRemoteResult.Forbidden
-                    HttpURLConnection.HTTP_CONFLICT -> TaskRemoteResult.Conflict
-                    in 500..599 -> TaskRemoteResult.NetworkError
-                    else -> TaskRemoteResult.InvalidResponse
+                    else -> taskResultForStatus(code)
                 }
             } finally { connection.disconnect() }
         } catch (cancelled: CancellationException) { throw cancelled }
-        catch (_: IOException) { TaskRemoteResult.NetworkError }
-        catch (_: Exception) { TaskRemoteResult.InvalidResponse }
+        catch (error: Exception) { taskResultForException(error) }
     }
 
     private fun endpoint(path: String): URI {
@@ -424,18 +451,8 @@ class TaskApi(
         )
     }
 
-    private fun <T, R> TaskRemoteResult<T>.map(transform: (T) -> R): TaskRemoteResult<R> = when (this) {
-        is TaskRemoteResult.Success -> runCatching { TaskRemoteResult.Success(transform(value)) }.getOrDefault(TaskRemoteResult.InvalidResponse)
-        TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized; TaskRemoteResult.Forbidden -> TaskRemoteResult.Forbidden
-        TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict
-        TaskRemoteResult.NetworkError -> TaskRemoteResult.NetworkError; TaskRemoteResult.InvalidResponse -> TaskRemoteResult.InvalidResponse
-    }
-    private fun TaskRemoteResult<String>.withoutPayload(): TaskRemoteResult<Unit> = when (this) {
-        is TaskRemoteResult.Success -> TaskRemoteResult.Success(Unit); TaskRemoteResult.Unauthorized -> TaskRemoteResult.Unauthorized
-        TaskRemoteResult.Forbidden -> TaskRemoteResult.Forbidden
-        TaskRemoteResult.Conflict -> TaskRemoteResult.Conflict; TaskRemoteResult.NetworkError -> TaskRemoteResult.NetworkError
-        TaskRemoteResult.InvalidResponse -> TaskRemoteResult.InvalidResponse
-    }
+    private fun <T, R> TaskRemoteResult<T>.map(transform: (T) -> R): TaskRemoteResult<R> = mapTaskResult(transform)
+    private fun TaskRemoteResult<String>.withoutPayload(): TaskRemoteResult<Unit> = mapTaskResult { }
     private fun java.io.InputStream.readBounded(): String = use { input ->
         val output = ByteArrayOutputStream(); val buffer = ByteArray(8_192); var total = 0
         while (true) { val count = input.read(buffer); if (count < 0) break; total += count; if (total > 256 * 1_024) throw IOException(); output.write(buffer, 0, count) }
@@ -445,5 +462,9 @@ class TaskApi(
     private companion object {
         val HH_MM = Regex("^(?:[01]\\d|2[0-3]):[0-5]\\d$")
         val OPERATION_ID = Regex("^[A-Za-z0-9_-]{1,200}$")
+        const val CONNECT_TIMEOUT_MS = 15_000
+        const val DEFAULT_READ_TIMEOUT_MS = 40_000
+        const val WRITE_READ_TIMEOUT_MS = 60_000
+        const val AI_READ_TIMEOUT_MS = 90_000
     }
 }

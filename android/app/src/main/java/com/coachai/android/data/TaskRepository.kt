@@ -7,7 +7,29 @@ import com.coachai.android.data.remote.withTokenRefreshRetry
 import com.coachai.android.domain.HomeTask
 import kotlinx.coroutines.CancellationException
 
-enum class TaskFailureReason { AUTHENTICATION_REQUIRED, CONFLICT, NETWORK_ERROR, INVALID_RESPONSE }
+enum class TaskFailureReason {
+    AUTHENTICATION_REQUIRED,
+    CONFLICT,
+    NETWORK_ERROR,
+    INVALID_RESPONSE,
+    TIMEOUT,
+    RATE_LIMITED,
+    SERVICE_UNAVAILABLE,
+    SERVER_ERROR,
+}
+
+internal fun <T> TaskRemoteResult<T>.toTaskResult(): Result<T> = when (this) {
+    is TaskRemoteResult.Success -> Result.success(value)
+    TaskRemoteResult.Unauthorized,
+    TaskRemoteResult.Forbidden -> Result.failure(TaskRepositoryException(TaskFailureReason.AUTHENTICATION_REQUIRED))
+    TaskRemoteResult.Conflict -> Result.failure(TaskRepositoryException(TaskFailureReason.CONFLICT))
+    TaskRemoteResult.NetworkError -> Result.failure(TaskRepositoryException(TaskFailureReason.NETWORK_ERROR))
+    TaskRemoteResult.InvalidResponse -> Result.failure(TaskRepositoryException(TaskFailureReason.INVALID_RESPONSE))
+    TaskRemoteResult.Timeout -> Result.failure(TaskRepositoryException(TaskFailureReason.TIMEOUT))
+    TaskRemoteResult.RateLimited -> Result.failure(TaskRepositoryException(TaskFailureReason.RATE_LIMITED))
+    TaskRemoteResult.ServiceUnavailable -> Result.failure(TaskRepositoryException(TaskFailureReason.SERVICE_UNAVAILABLE))
+    TaskRemoteResult.ServerError -> Result.failure(TaskRepositoryException(TaskFailureReason.SERVER_ERROR))
+}
 class TaskRepositoryException(val reason: TaskFailureReason) : Exception(reason.name)
 
 class TaskRepository(private val tokens: AuthTokenProvider, private val api: TaskRemoteDataSource) {
@@ -43,14 +65,7 @@ class TaskRepository(private val tokens: AuthTokenProvider, private val api: Tas
             return failure(TaskFailureReason.NETWORK_ERROR)
         }
         if (result == null) return failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
-        return when (result) {
-            is TaskRemoteResult.Success -> Result.success(result.value)
-            TaskRemoteResult.Unauthorized -> failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
-            TaskRemoteResult.Forbidden -> failure(TaskFailureReason.AUTHENTICATION_REQUIRED)
-            TaskRemoteResult.Conflict -> failure(TaskFailureReason.CONFLICT)
-            TaskRemoteResult.NetworkError -> failure(TaskFailureReason.NETWORK_ERROR)
-            TaskRemoteResult.InvalidResponse -> failure(TaskFailureReason.INVALID_RESPONSE)
-        }
+        return result.toTaskResult()
     }
     private fun <T> failure(reason: TaskFailureReason): Result<T> = Result.failure(TaskRepositoryException(reason))
 }
