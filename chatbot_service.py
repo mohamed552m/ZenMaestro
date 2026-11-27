@@ -61,15 +61,10 @@ def _configured_model(env_name: str, default: str) -> str:
 
 
 def _is_transient_provider_error(exc: Exception) -> bool:
-    """Identify retryable provider failures without inspecting sensitive text."""
-    status_code = getattr(exc, "status_code", None)
-    if status_code in {408, 429, 500, 502, 503, 504}:
-        return True
-    return type(exc).__name__.lower() in {
-        "resourceexhausted",
-        "servererror",
-        "serviceunavailable",
-    }
+    """Use the shared provider classifier for chat fallback decisions."""
+    from ai_provider import is_fallback_eligible_provider_error
+
+    return is_fallback_eligible_provider_error(exc)
 
 _SYSTEM_PROMPT: str = """\
 You are **CoachAI Assistant**, an AI productivity coach built into the CoachAI application.
@@ -281,7 +276,7 @@ def _get_api_key() -> Optional[str]:
 
 def _ai_timeout_seconds() -> float:
     try:
-        value = float(os.getenv("COACHAI_AI_TIMEOUT_SECONDS", "15"))
+        value = float(os.getenv("COACHAI_AI_TIMEOUT_SECONDS", "35"))
     except ValueError as exc:
         raise ConfigurationError("COACHAI_AI_TIMEOUT_SECONDS must be numeric.") from exc
     if not 0.1 <= value <= 120:
@@ -315,14 +310,14 @@ def _chat_output_tokens() -> int:
 def _chat_process_timeout_seconds() -> float:
     """Bound the whole provider conversation, including tool rounds."""
     try:
-        value = float(os.getenv("COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS", "30"))
+        value = float(os.getenv("COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS", "80"))
     except ValueError as exc:
         raise ConfigurationError(
             "COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS must be numeric."
         ) from exc
-    if not 5 <= value <= 60:
+    if not 5 <= value <= 80:
         raise ConfigurationError(
-            "COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS must be between 5 and 60 seconds."
+            "COACHAI_CHAT_TOTAL_TIMEOUT_SECONDS must be between 5 and 80 seconds."
         )
     return value
 
@@ -936,10 +931,14 @@ def _classify_and_log_error(exc: Exception, context: str) -> str:
     else:
         category = "other"
 
+    from ai_provider import provider_status_code
+
+    status = provider_status_code(exc)
     logger.warning(
-        "External AI request failed | context=%s error_type=%s category=%s",
+        "External AI request failed | context=%s error_type=%s status=%s category=%s",
         context,
         error_type,
+        status,
         category,
     )
     return category
@@ -1408,7 +1407,7 @@ def send_message_bounded(user_id: str, user_message: str, *, db=None) -> str:
             [sys.executable, str(worker)],
             input=payload,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=None,
             text=True,
             encoding="utf-8",
             timeout=_chat_process_timeout_seconds(),

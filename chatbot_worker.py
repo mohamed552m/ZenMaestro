@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sys
 
 from chatbot_service import ChatbotService
@@ -10,6 +11,11 @@ from domain_validation import MAX_AI_INPUT_CHARS
 
 
 def main() -> int:
+    logging.basicConfig(
+        level=logging.WARNING,
+        stream=sys.stderr,
+        format="chatbot_worker %(levelname)s %(name)s: %(message)s",
+    )
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         payload = json.loads(sys.stdin.read(MAX_AI_INPUT_CHARS + 4096))
@@ -20,7 +26,10 @@ def main() -> int:
         reply = ChatbotService(user_id).send_message(message)
         sys.stdout.write(json.dumps({"reply": reply}, ensure_ascii=False))
         return 0
-    except Exception:
+    except Exception as exc:
+        logging.getLogger("coachai.chat_worker").warning(
+            "chat_worker_failed error_type=%s", type(exc).__name__
+        )
         return 1
 
 

@@ -12,7 +12,9 @@ from ai_provider import (
     DEFAULT_FALLBACK_MODEL,
     DEFAULT_FAST_MODEL,
     configured_model,
-    is_transient_provider_error,
+    google_api_key,
+    is_fallback_eligible_provider_error,
+    log_provider_failure,
 )
 from backend_errors import ConfigurationError, ExternalProviderFailure
 from domain_validation import (
@@ -47,7 +49,7 @@ def _require_google_api_key() -> str:
     unrelated parts of the app are used). The key is only required once
     the planner is actually invoked.
     """
-    key = os.getenv("GOOGLE_API_KEY") or _GOOGLE_API_KEY
+    key = google_api_key() or _GOOGLE_API_KEY
     if not key:
         raise ConfigurationError("The AI provider is not configured.")
     return key
@@ -403,6 +405,7 @@ class PlannerEngine:
             result: DayPlanOutput = chain.invoke(payload)
         except Exception as exc:
             failed_model = self._active_model_name
+            log_provider_failure("planner", failed_model, exc)
             self._metrics.ai_call(
                 "google",
                 failed_model,
@@ -410,13 +413,17 @@ class PlannerEngine:
                 duration_seconds=time.monotonic() - started,
             )
             if (
-                is_transient_provider_error(exc)
+                (
+                    is_fallback_eligible_provider_error(exc)
+                    or type(exc).__name__ == "OutputParserException"
+                )
                 and failed_model != self._fallback_model_name
             ):
                 started = time.monotonic()
                 try:
                     result = self._build_chain(self._fallback_model_name).invoke(payload)
                 except Exception as fallback_exc:
+                    log_provider_failure("planner", self._active_model_name, fallback_exc)
                     self._metrics.ai_call(
                         "google",
                         self._active_model_name,

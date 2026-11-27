@@ -269,7 +269,15 @@ def create_coach_router(application_dependency: Callable[..., Any]) -> APIRouter
         if not audio or len(audio) > 15 * 1024 * 1024:
             from backend_errors import ValidationError
             raise ValidationError("The audio recording is empty or too large.")
-        transcript = application.coaching.transcribe_voice(audio, mime_type=mime_type)
+        # Gemini transcription is synchronous; keep it off the async event loop so
+        # unrelated task and schedule requests remain responsive.
+        from starlette.concurrency import run_in_threadpool
+
+        transcript = await run_in_threadpool(
+            application.coaching.transcribe_voice,
+            audio,
+            mime_type=mime_type,
+        )
         return {"transcript": transcript}
 
     return router

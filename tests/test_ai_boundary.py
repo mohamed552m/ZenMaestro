@@ -380,6 +380,16 @@ class SafeAiBoundaryTests(unittest.TestCase):
             chatbot.send_message("x" * (MAX_AI_INPUT_CHARS + 1)).lower(),
         )
 
+    def test_chatbot_default_deadlines_allow_primary_and_fallback(self) -> None:
+        from chatbot_service import (
+            _ai_timeout_seconds,
+            _chat_process_timeout_seconds,
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(35, _ai_timeout_seconds())
+            self.assertEqual(80, _chat_process_timeout_seconds())
+
     def test_chatbot_uses_fallback_only_for_transient_provider_failure(self) -> None:
         class TransientProviderError(Exception):
             status_code = 503

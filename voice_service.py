@@ -31,7 +31,9 @@ from ai_provider import (
     DEFAULT_FALLBACK_MODEL,
     DEFAULT_FAST_MODEL,
     configured_model,
-    is_transient_provider_error,
+    google_api_key,
+    is_fallback_eligible_provider_error,
+    log_provider_failure,
 )
 from backend_errors import ConfigurationError
 from domain_validation import (
@@ -58,7 +60,7 @@ def _require_google_api_key() -> str:
     is missing from the environment. The key (and genai.configure()) is
     only required once transcription is actually attempted.
     """
-    key = os.getenv("GOOGLE_API_KEY") or _GOOGLE_API_KEY
+    key = google_api_key() or _GOOGLE_API_KEY
     if not key:
         raise ConfigurationError("The AI provider is not configured.")
     return key
@@ -240,13 +242,14 @@ def transcribe_audio(
                 config=config,
             )
         except Exception as exc:
+            log_provider_failure("voice", model_name, exc)
             metric_sink.ai_call(
                 "google",
                 model_name,
                 succeeded=False,
                 duration_seconds=time.monotonic() - started,
             )
-            if not is_transient_provider_error(exc) or model_name == fallback_model_name:
+            if not is_fallback_eligible_provider_error(exc) or model_name == fallback_model_name:
                 raise
             started = time.monotonic()
             model_name = fallback_model_name
@@ -256,6 +259,7 @@ def transcribe_audio(
                 config=config,
             )
     except Exception as exc:
+        log_provider_failure("voice", model_name, exc)
         metric_sink.ai_call(
             "google",
             model_name,

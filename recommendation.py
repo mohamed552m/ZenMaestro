@@ -7,6 +7,14 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import PydanticOutputParser
 
+from ai_provider import (
+    DEFAULT_COACH_MODEL,
+    DEFAULT_FAST_MODEL,
+    configured_model,
+    google_api_key,
+    is_fallback_eligible_provider_error,
+    log_provider_failure,
+)
 from backend_errors import ConfigurationError, ExternalProviderFailure, ValidationError
 from domain_validation import MAX_AI_INPUT_CHARS, MAX_AI_OUTPUT_TOKENS
 from operational_metrics import BackendMetrics
@@ -23,7 +31,7 @@ def _require_google_api_key() -> str:
     is missing from the environment. The key is only required once the
     recommendation engine is actually invoked.
     """
-    key = os.getenv("GOOGLE_API_KEY")
+    key = google_api_key()
     if not key:
         raise ConfigurationError("The AI provider is not configured.")
     return key
@@ -166,9 +174,10 @@ _RECOMMENDATION_USER_PROMPT: str = (
 class RecommendationEngine:
 
 
-    _MODEL_NAME: str = "gemini-3.8-flash"
+    _MODEL_NAME: str = DEFAULT_COACH_MODEL
+    _FALLBACK_MODEL_NAME: str = DEFAULT_FAST_MODEL
     _TEMPERATURE: float = 0.2
-    _MAX_RETRIES: int = 2
+    _MAX_RETRIES: int = 1
 
     def __init__(self, *, metrics: BackendMetrics | None = None) -> None:
         # Validated lazily in _build_chain(), not at construction time.
@@ -176,13 +185,19 @@ class RecommendationEngine:
         self._chain: Optional[Any] = None
         self._parser: Optional[PydanticOutputParser] = None
         self._metrics = metrics or BackendMetrics()
+        self._model_name = configured_model("COACHAI_COACH_MODEL", self._MODEL_NAME)
+        self._fallback_model_name = configured_model(
+            "COACHAI_COACH_FALLBACK_MODEL", self._FALLBACK_MODEL_NAME
+        )
+        self._active_model_name = self._model_name
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _build_chain(self) -> Any:
-        if self._chain is not None:
+    def _build_chain(self, model_name: str | None = None) -> Any:
+        requested_model = model_name or self._model_name
+        if self._chain is not None and requested_model == self._active_model_name:
             return self._chain
 
         self._api_key = _require_google_api_key()
@@ -196,7 +211,7 @@ class RecommendationEngine:
         ])
 
         llm = ChatGoogleGenerativeAI(
-            model=self._MODEL_NAME,
+            model=requested_model,
             temperature=self._TEMPERATURE,
             google_api_key=self._api_key,
             max_retries=self._MAX_RETRIES,
@@ -205,6 +220,7 @@ class RecommendationEngine:
         )
 
         self._chain = prompt | llm | self._parser
+        self._active_model_name = requested_model
         return self._chain
 
     # ------------------------------------------------------------------
@@ -232,27 +248,53 @@ class RecommendationEngine:
 
         chain = self._build_chain()
 
+        payload = {
+            "schedule_text": cleaned_schedule,
+            "historical_context": cleaned_history,
+            "format_instructions": self._parser.get_format_instructions(),
+        }
         started = time.monotonic()
         try:
-            result: RecommendationOutput = chain.invoke({
-                "schedule_text": cleaned_schedule,
-                "historical_context": cleaned_history,
-                "format_instructions": self._parser.get_format_instructions(),
-            })
+            result: RecommendationOutput = chain.invoke(payload)
         except Exception as exc:
+            failed_model = self._active_model_name
+            log_provider_failure("coach_report", failed_model, exc)
             self._metrics.ai_call(
                 "google",
-                self._MODEL_NAME,
+                failed_model,
                 succeeded=False,
                 duration_seconds=time.monotonic() - started,
             )
-            raise ExternalProviderFailure(
-                "The AI coach could not produce recommendations."
-            ) from exc
+            if not (
+                (
+                    is_fallback_eligible_provider_error(exc)
+                    or type(exc).__name__ == "OutputParserException"
+                )
+                and failed_model != self._fallback_model_name
+            ):
+                raise ExternalProviderFailure(
+                    "The AI coach could not produce recommendations."
+                ) from exc
+            started = time.monotonic()
+            try:
+                result = self._build_chain(self._fallback_model_name).invoke(payload)
+            except Exception as fallback_exc:
+                log_provider_failure(
+                    "coach_report", self._active_model_name, fallback_exc
+                )
+                self._metrics.ai_call(
+                    "google",
+                    self._active_model_name,
+                    succeeded=False,
+                    duration_seconds=time.monotonic() - started,
+                )
+                raise ExternalProviderFailure(
+                    "The AI coach could not produce recommendations."
+                ) from fallback_exc
 
         self._metrics.ai_call(
             "google",
-            self._MODEL_NAME,
+            self._active_model_name,
             succeeded=True,
             duration_seconds=time.monotonic() - started,
         )

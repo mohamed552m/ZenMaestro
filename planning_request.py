@@ -23,7 +23,9 @@ from ai_provider import (
     DEFAULT_FALLBACK_MODEL,
     DEFAULT_FAST_MODEL,
     configured_model,
-    is_transient_provider_error,
+    google_api_key,
+    is_fallback_eligible_provider_error,
+    log_provider_failure,
 )
 from backend_errors import ConfigurationError, ExternalProviderFailure
 from config import MAX_FUTURE_PLANNING_WEEKS
@@ -246,7 +248,7 @@ class PlanningRequestInterpreter:
         requested_model = model_name or self._model_name
         if self._chain is not None and requested_model == self._active_model_name:
             return self._chain
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = google_api_key()
         if not api_key:
             raise ConfigurationError("The AI provider is not configured.")
         self._parser = PydanticOutputParser(pydantic_object=InterpretedPlanningIntent)
@@ -310,6 +312,7 @@ class PlanningRequestInterpreter:
             intent = chain.invoke(payload)
         except Exception as exc:
             failed_model = self._active_model_name
+            log_provider_failure("future_planner", failed_model, exc)
             self._metrics.ai_call(
                 "google",
                 failed_model,
@@ -317,13 +320,19 @@ class PlanningRequestInterpreter:
                 duration_seconds=monotonic_time.monotonic() - started,
             )
             if (
-                is_transient_provider_error(exc)
+                (
+                    is_fallback_eligible_provider_error(exc)
+                    or type(exc).__name__ == "OutputParserException"
+                )
                 and failed_model != self._fallback_model_name
             ):
                 started = monotonic_time.monotonic()
                 try:
                     intent = self._build_chain(self._fallback_model_name).invoke(payload)
                 except Exception as fallback_exc:
+                    log_provider_failure(
+                        "future_planner", self._active_model_name, fallback_exc
+                    )
                     self._metrics.ai_call(
                         "google",
                         self._active_model_name,
