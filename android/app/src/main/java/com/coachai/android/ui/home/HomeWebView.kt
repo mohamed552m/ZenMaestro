@@ -18,8 +18,15 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -28,8 +35,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.dp
 import com.coachai.android.domain.InsightState
 import com.coachai.android.domain.TaskStatus
 import com.coachai.android.domain.TodayPlanState
@@ -60,6 +69,7 @@ fun HomeWebView(
     val latestRetry by rememberUpdatedState(onRetry)
     var webView by remember { mutableStateOf<WebView?>(null) }
     var pageReady by remember { mutableStateOf(false) }
+    var pageFailed by remember { mutableStateOf(false) }
     val assetUrl = "$HOME_ASSET_URL?theme=${if (lightTheme) "light" else "dark"}"
     val webBackground = if (lightTheme) Color.White else Color(0xFF08080A)
 
@@ -67,11 +77,11 @@ fun HomeWebView(
         webView?.goBack()
     }
 
-    AndroidView(
-        modifier = modifier
-            .fillMaxSize()
-            .background(webBackground)
-            .statusBarsPadding(),
+    androidx.compose.foundation.layout.Box(
+        modifier = modifier.fillMaxSize().background(webBackground),
+    ) {
+        AndroidView(
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
         factory = { context ->
             WebView(context).apply {
                 webView = this
@@ -131,8 +141,10 @@ fun HomeWebView(
                     override fun onPageFinished(view: WebView, url: String) {
                         if (url != assetUrl) return
                         installHomeRuntime(view) {
-                            pageReady = true
-                            renderHomeState(view, latestUiState)
+                            pageFailed = false
+                            renderHomeState(view, latestUiState) {
+                                pageReady = true
+                            }
                         }
                     }
 
@@ -143,6 +155,7 @@ fun HomeWebView(
                     ) {
                         if (request.isForMainFrame) {
                             pageReady = false
+                            pageFailed = true
                             view.visibility = View.VISIBLE
                             view.loadDataWithBaseURL(
                                 null,
@@ -170,7 +183,12 @@ fun HomeWebView(
             webView = view
             if (pageReady) renderHomeState(view, uiState)
         },
-    )
+        )
+
+        if (!pageReady && !pageFailed) {
+            HomeLoadingSkeleton(lightTheme = lightTheme)
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -184,6 +202,29 @@ fun HomeWebView(
             }
             webView = null
         }
+    }
+}
+
+@Composable
+private fun HomeLoadingSkeleton(lightTheme: Boolean) {
+    val block = if (lightTheme) Color(0xFFE9E6E2) else Color(0xFF242428)
+    val card = if (lightTheme) Color(0xFFF5F3F0) else Color(0xFF171719)
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+    ) {
+        Spacer(Modifier.fillMaxWidth(.42f).height(24.dp).clip(RoundedCornerShape(8.dp)).background(block))
+        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.fillMaxWidth(.7f).height(14.dp).clip(RoundedCornerShape(7.dp)).background(block))
+        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.fillMaxWidth().height(104.dp).clip(RoundedCornerShape(22.dp)).background(card))
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+            Spacer(Modifier.weight(1f).height(132.dp).clip(RoundedCornerShape(22.dp)).background(card))
+            Spacer(Modifier.weight(1f).height(132.dp).clip(RoundedCornerShape(22.dp)).background(card))
+        }
+        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(22.dp)).background(card))
     }
 }
 
@@ -214,10 +255,15 @@ private fun installHomeRuntime(webView: WebView, onInstalled: () -> Unit) {
     webView.evaluateJavascript(HOME_RUNTIME_SCRIPT) { onInstalled() }
 }
 
-private fun renderHomeState(webView: WebView, uiState: HomeUiState) {
+private fun renderHomeState(
+    webView: WebView,
+    uiState: HomeUiState,
+    onRendered: () -> Unit = {},
+) {
     val payload = uiState.toJson().toString()
     webView.evaluateJavascript("window.CoachAIHome.render($payload);") {
         webView.visibility = View.VISIBLE
+        onRendered()
     }
 }
 

@@ -49,7 +49,12 @@ class HomeViewModel(
 
     fun refresh() {
         refreshJob?.cancel()
-        _uiState.value = HomeUiState.Loading
+        val previous = _uiState.value as? HomeUiState.Ready
+        // Keep a confirmed snapshot visible while refreshing. Loading is only
+        // shown before the first successful response, avoiding a blank/flicker.
+        if (_uiState.value !is HomeUiState.Ready) {
+            _uiState.value = HomeUiState.Loading
+        }
         refreshJob = viewModelScope.launch {
             val date = LocalDate.now(clock)
             val quote = quoteSelector.select(date)
@@ -71,11 +76,22 @@ class HomeViewModel(
                     insightState = InsightState.Unavailable,
                 )
             }
-            _uiState.value = HomeUiState.Ready(
-                snapshot = snapshot,
-                quote = quote,
-                localTime = LocalTime.now(clock),
-            )
+            val transientNetworkFailure =
+                (snapshot.planState as? TodayPlanState.Unavailable)?.reason ==
+                    UnavailableReason.NETWORK_ERROR
+            _uiState.value = if (
+                transientNetworkFailure &&
+                previous != null &&
+                previous.snapshot.localDate == date
+            ) {
+                previous.copy(localTime = LocalTime.now(clock))
+            } else {
+                HomeUiState.Ready(
+                    snapshot = snapshot,
+                    quote = quote,
+                    localTime = LocalTime.now(clock),
+                )
+            }
         }
     }
 

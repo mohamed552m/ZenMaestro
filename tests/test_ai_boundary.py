@@ -433,6 +433,31 @@ class SafeAiBoundaryTests(unittest.TestCase):
         self.assertIn("not available", response)
         client.chats.create.assert_called_once()
 
+    def test_chatbot_logs_provider_stage_and_duration_without_message_content(self) -> None:
+        chat = MagicMock()
+        chat.send_message.return_value = SimpleNamespace(
+            candidates=[],
+            text="Safe response",
+        )
+        client = MagicMock()
+        client.chats.create.return_value = chat
+
+        with (
+            patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"}),
+            patch("google.genai.Client", return_value=client),
+            patch("chatbot_service.time.monotonic", side_effect=[10.0, 10.25]),
+            self.assertLogs("coachai.chatbot_service", level="INFO") as logs,
+        ):
+            chatbot = ChatbotService("u1", db=self.db)
+            response = chatbot.send_message("private planning question")
+
+        self.assertEqual("Safe response", response)
+        output = "\n".join(logs.output)
+        self.assertIn("Chat provider call started", output)
+        self.assertIn("stage=initial", output)
+        self.assertIn("duration_ms=250", output)
+        self.assertNotIn("private planning question", output)
+
     def test_bounded_chat_returns_isolated_worker_reply(self) -> None:
         completed = SimpleNamespace(
             returncode=0,

@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.coachai.android.ui.theme.Accent
 import com.coachai.android.ui.theme.AccentLine
@@ -361,9 +362,10 @@ private fun MessageBubble(message: AskMessage) {
             border = BorderStroke(1.dp, if (message.fromUser) AccentLine else Border),
         ) {
             Text(
-                text = message.text,
+                text = renderChatMarkdown(message.text),
                 color = TextPrimary,
                 style = MaterialTheme.typography.bodyMedium,
+                textAlign = if (isRtlChatText(message.text)) TextAlign.End else TextAlign.Start,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
             )
         }

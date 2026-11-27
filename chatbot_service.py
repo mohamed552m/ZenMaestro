@@ -19,6 +19,7 @@ import random
 import re
 import subprocess
 import sys
+import time
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Optional
@@ -1066,9 +1067,40 @@ class ChatbotService:
         )
 
     def _send_with_tools(self, user_message: str) -> str:
-        response = self._chat.send_message(user_message)
+        response = self._send_provider_message(user_message, stage="initial")
         response = self._handle_function_calls(response)
         return self._extract_text(response)
+
+    def _send_provider_message(self, payload: Any, *, stage: str) -> Any:
+        """Call Gemini while recording bounded, content-free latency diagnostics."""
+        logger.info(
+            "Chat provider call started | stage=%s model=%s",
+            stage,
+            self._active_model_name,
+        )
+        started_at = time.monotonic()
+        try:
+            response = self._chat.send_message(payload)
+        except Exception as exc:
+            from ai_provider import provider_status_code
+
+            logger.info(
+                "Chat provider call | stage=%s model=%s outcome=error "
+                "duration_ms=%d error_type=%s status=%s",
+                stage,
+                self._active_model_name,
+                int((time.monotonic() - started_at) * 1000),
+                type(exc).__name__,
+                provider_status_code(exc),
+            )
+            raise
+        logger.info(
+            "Chat provider call | stage=%s model=%s outcome=success duration_ms=%d",
+            stage,
+            self._active_model_name,
+            int((time.monotonic() - started_at) * 1000),
+        )
+        return response
 
     def send_message(self, user_message: str) -> str:
         """
@@ -1175,7 +1207,10 @@ class ChatbotService:
                 )
 
             # Send all function responses back to Gemini
-            response = self._chat.send_message(function_response_parts)
+            response = self._send_provider_message(
+                function_response_parts,
+                stage=f"tool_round_{rounds + 1}",
+            )
             rounds += 1
 
         return response
